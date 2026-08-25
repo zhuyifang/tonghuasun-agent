@@ -31,6 +31,41 @@ Assert-AdapterVersion (Join-Path $agentRoot "workbuddy\.codebuddy-plugin\plugin.
 Assert-AdapterVersion (Join-Path $agentRoot "zcode\.zcode-plugin\plugin.json") "ZCode"
 Assert-AdapterVersion (Join-Path $agentRoot "openclaw\plugin.json") "OpenClaw"
 Assert-AdapterVersion (Join-Path $agentRoot "deepseek-harness\package.json") "DeepSeek Harness"
+Assert-AdapterVersion (Join-Path $toolingRoot "package.json") "MCP Node 工具包"
+
+$toolingLockPath = Join-Path $toolingRoot "package-lock.json"
+$toolingLock = Get-Content -LiteralPath $toolingLockPath -Raw -Encoding UTF8 | ConvertFrom-Json -AsHashtable
+$toolingLockRoot = $toolingLock["packages"][""]
+if ([string]$toolingLock["version"] -ne $releaseVersion -or
+    $null -eq $toolingLockRoot -or
+    [string]$toolingLockRoot["version"] -ne $releaseVersion) {
+    throw "MCP Node 工具包的 package-lock.json 版本与公共底座不一致。"
+}
+
+$pythonPackagePath = Join-Path $distributionRoot "sdk\python\pyproject.toml"
+$pythonPackageText = Get-Content -LiteralPath $pythonPackagePath -Raw -Encoding UTF8
+$pythonVersionMatch = [regex]::Match($pythonPackageText, '(?m)^version\s*=\s*"([^"]+)"\s*$')
+if (-not $pythonVersionMatch.Success -or $pythonVersionMatch.Groups[1].Value -ne $releaseVersion) {
+    throw "Python SDK 版本与公共底座不一致。"
+}
+
+$mcpProxySourcePath = Join-Path $toolingRoot "src\mcpProxy.ts"
+$mcpProxySource = Get-Content -LiteralPath $mcpProxySourcePath -Raw -Encoding UTF8
+$expectedBridgeDeclaration = "const BRIDGE_VERSION = `"$releaseVersion`";"
+if (-not $mcpProxySource.Contains($expectedBridgeDeclaration, [StringComparison]::Ordinal)) {
+    throw "MCP 传输桥版本与公共底座不一致。"
+}
+
+$claudeMarketplacePath = Join-Path $agentRoot ".claude-plugin\marketplace.json"
+$claudeMarketplace = Get-Content -LiteralPath $claudeMarketplacePath -Raw -Encoding UTF8 | ConvertFrom-Json
+$claudeMarketplacePlugins = @($claudeMarketplace.plugins)
+$expectedClaudeArchiveUrl = "https://github.com/zhuyifang/tonghuasun-agent/releases/download/v$releaseVersion/tonghuasun-agent-claude-code-$releaseVersion.zip"
+if ($claudeMarketplacePlugins.Count -ne 1 -or
+    [string]$claudeMarketplacePlugins[0].version -ne $releaseVersion -or
+    [string]$claudeMarketplacePlugins[0].source.url -ne $expectedClaudeArchiveUrl -or
+    [string]$claudeMarketplacePlugins[0].source.sha256 -notmatch '^[0-9a-f]{64}$') {
+    throw "Claude Code 市场清单与公共底座版本不一致。"
+}
 
 Push-Location $toolingRoot
 try {
@@ -41,6 +76,12 @@ try {
 }
 finally {
     Pop-Location
+}
+
+$generatedMcpProxyPath = Join-Path $distributionRoot "scripts\tonghuasun-mcp-proxy.mjs"
+$generatedMcpProxy = Get-Content -LiteralPath $generatedMcpProxyPath -Raw -Encoding UTF8
+if (-not $generatedMcpProxy.Contains($releaseVersion, [StringComparison]::Ordinal)) {
+    throw "生成后的 MCP 传输桥未包含当前公共底座版本。"
 }
 
 $resolvedPayloadPath = [IO.Path]::GetFullPath($payloadPath)
@@ -98,7 +139,7 @@ foreach ($payloadFile in $payloadFiles) {
 }
 
 $forbiddenPayloadSources = @(Get-ChildItem -LiteralPath $resolvedPayloadPath -Recurse -File -Force |
-    Where-Object { $_.Extension -in @(".cs", ".csproj", ".sln") })
+    Where-Object { $_.Extension -in @(".cs", ".csproj", ".sln", ".slnx") })
 if ($forbiddenPayloadSources.Count -gt 0) {
     throw "闭源发行目录不得包含 C# 源码或工程文件：$($forbiddenPayloadSources.FullName -join ', ')"
 }
@@ -110,7 +151,7 @@ function Copy-ReleaseTree([string]$SourcePath, [string]$DestinationPath) {
             $relativePath = $_.FullName.Substring($resolvedSourcePath.Length).TrimStart("\")
             $relativePath -notmatch "(^|\\)(node_modules|dist|bin|obj|__pycache__|\.secrets|\.git|host|control-plane)(\\|$)" -and
             $_.Name -notin @(".env", ".env.local", ".mcp.json") -and
-            $_.Extension -notin @(".pyc", ".cs", ".csproj", ".sln")
+            $_.Extension -notin @(".pyc", ".cs", ".csproj", ".sln", ".slnx")
         } |
         ForEach-Object {
             $relativePath = $_.FullName.Substring($resolvedSourcePath.Length).TrimStart("\")
@@ -527,6 +568,27 @@ function Assert-ZCodeMarketplaceArchive([string]$ArchivePath, [string]$RootName)
     }
 }
 
+function Update-ClaudeMarketplaceHash([string]$ArtifactPath) {
+    $manifest = Get-Content -LiteralPath $claudeMarketplacePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $plugins = @($manifest.plugins)
+    if ($plugins.Count -ne 1) {
+        throw "Claude Code 市场清单必须且只能包含一个插件条目。"
+    }
+
+    $actualHash = (Get-FileHash -LiteralPath $ArtifactPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    $plugins[0].source.sha256 = $actualHash
+    $json = $manifest | ConvertTo-Json -Depth 12
+    [IO.File]::WriteAllText(
+        $claudeMarketplacePath,
+        $json + [Environment]::NewLine,
+        [Text.UTF8Encoding]::new($false))
+
+    $writtenManifest = Get-Content -LiteralPath $claudeMarketplacePath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ([string]$writtenManifest.plugins[0].source.sha256 -cne $actualHash) {
+        throw "Claude Code 市场清单的发行包哈希写入失败。"
+    }
+}
+
 $temporaryRoot = Join-Path $temporaryBase ("distribution-" + $releaseVersion + "-" + $PID)
 $resolvedTemporaryBase = [IO.Path]::GetFullPath($temporaryBase).TrimEnd("\") + "\"
 $resolvedTemporaryRoot = [IO.Path]::GetFullPath($temporaryRoot)
@@ -556,7 +618,9 @@ try {
     Copy-CommonPackage $claudeStage
     Copy-Item -LiteralPath (Join-Path $agentRoot "claude-code\.mcp.json") -Destination (Join-Path $claudeStage ".mcp.json")
     Assert-StagedPackage $claudeStage "Claude Code"
-    $builtArtifacts += Compress-Plugin $claudeStage "tonghuasun-agent" "tonghuasun-agent-claude-code-$releaseVersion.zip"
+    $claudeArtifact = Compress-Plugin $claudeStage "tonghuasun-agent" "tonghuasun-agent-claude-code-$releaseVersion.zip"
+    Update-ClaudeMarketplaceHash $claudeArtifact
+    $builtArtifacts += $claudeArtifact
 
     $workBuddyStage = Join-Path $resolvedTemporaryRoot "workbuddy"
     New-Item -ItemType Directory -Path $workBuddyStage -Force | Out-Null

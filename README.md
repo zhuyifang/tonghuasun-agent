@@ -43,17 +43,22 @@
 - 当前开发与验证环境为同花顺远航版 11.4.1.3；配置器会识别本机客户端和版本信息，其他版本如遇兼容问题请提交 Issue。
 - 核心插件目前尚未使用 Windows 代码签名，发行包提供 SHA-256 清单供你核对文件；如果不能接受闭源且未签名的组件，请不要安装或开启交易功能。
 - 查询实时行情、账户或交易数据时，请保持同花顺已登录并正常运行。
-- 首次安装或升级后，请重启同花顺；如果 Agent 没有显示新工具，也请重启 Agent 或新建一个任务。
+- 首次安装或升级后，请重启同花顺；如果 Agent 没有显示新工具，请先新建任务或重新加载插件，只有刷新异常时才重启 Agent。
 
 ## 文档与交流
 
 - 本机接口文档：[127.0.0.1:17180/docs](http://127.0.0.1:17180/docs)
 - 抖音群：[点击加入](https://v.douyin.com/group/387998743372)
+- 微信群：同花顺 AI Agent 插件交流（当前二维码有效期至 2026 年 9 月 1 日；失效后请提交 Issue 提醒更新）
 
 <p align="center">
   <a href="https://v.douyin.com/group/387998743372">
     <img src="./assets/community/douyin-group-qr.png" alt="抖音群二维码" width="180">
   </a>
+</p>
+
+<p align="center">
+  <img src="./assets/community/wechat-agent-group-qr.jpg" alt="同花顺 AI Agent 插件交流群二维码，有效期至 2026 年 9 月 1 日" width="280">
 </p>
 
 ## 关于交易功能
