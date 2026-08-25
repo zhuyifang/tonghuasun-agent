@@ -41,6 +41,17 @@
 - 查询实时行情、账户或交易数据时，请保持同花顺已登录并正常运行。
 - 首次安装或升级后，请重启同花顺；如果 Agent 没有显示新工具，也请重启 Agent 或新建一个任务。
 
+## 文档与交流
+
+- 本机接口文档：[127.0.0.1:17180/docs](http://127.0.0.1:17180/docs)
+- 抖音群：[点击加入](https://v.douyin.com/group/387998743372)
+
+<p align="center">
+  <a href="https://v.douyin.com/group/387998743372">
+    <img src="./assets/community/douyin-group-qr.png" alt="抖音群二维码" width="180">
+  </a>
+</p>
+
 ## 关于交易功能
 
 交易工具默认关闭，只有你主动开启后才会出现；下单、撤单和改单前仍需你确认，插件不会自行发起交易。
@@ -58,6 +69,8 @@
 </p>
 
 如果这个项目对你有帮助，欢迎打赏支持；打赏完全自愿，不影响任何功能、问题反馈或后续更新。
+
+赞助者：<a href="https://v.douyin.com/N-xSLIPMP-M/"><img src="./assets/sponsors/im-kim.png" alt="I'm Kim" width="32" height="32"></a> [**I'm Kim**](https://v.douyin.com/N-xSLIPMP-M/)
 
 ## 项目说明
 
