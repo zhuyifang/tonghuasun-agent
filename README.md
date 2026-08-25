@@ -13,7 +13,11 @@
 
 ## 一句话安装
 
-在你正在使用的 AI 助手中直接发送“安装并配置同花顺插件，项目地址：<https://gitee.com/qicuo/tonghuasun-agent.git>”，按提示选择同花顺安装目录，完成后重启同花顺和 AI 助手即可；如果自动安装失败，再前往 [GitHub 最新版下载页](https://github.com/zhuyifang/tonghuasun-agent/releases/latest) 或 [Gitee 发行版下载页](https://gitee.com/qicuo/tonghuasun-agent/releases) 下载对应的安装包手动安装。
+在你正在使用的 AI 助手中直接发送
+> 安装并配置同花顺插件，项目地址：<https://gitee.com/qicuo/tonghuasun-agent.git>
+
+- 按提示选择同花顺安装目录，完成后重启同花顺；如果当前任务没有显示新工具，新建一个任务即可，只有刷新异常时才需要重启 AI 助手；
+- 如果自动安装失败，再前往 [GitHub 最新版下载页](https://github.com/zhuyifang/tonghuasun-agent/releases/latest) 或 [Gitee 发行版下载页](https://gitee.com/qicuo/tonghuasun-agent/releases) 下载对应的安装包手动安装。
 
 ## 选择你使用的 Agent
 
