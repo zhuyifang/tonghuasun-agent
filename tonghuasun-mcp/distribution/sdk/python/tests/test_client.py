@@ -87,6 +87,19 @@ class ClientTests(unittest.TestCase):
         self.assertNotIn("captureTtlSeconds", payload)
         self.assertNotIn("ttlSeconds", payload)
 
+    @patch("tonghuasun_codex.client.urlopen")
+    def test_level2_trades_use_true_transaction_fields(self, urlopen) -> None:
+        urlopen.return_value = FakeResponse({"ok": True, "data": {"items": []}})
+
+        self.client.level2("600519.SH", mode="trades")
+
+        request = urlopen.call_args.args[0]
+        payload = json.loads(request.data)
+        self.assertIn("transaction_count", payload["fields"])
+        self.assertIn("buy_order_no", payload["fields"])
+        self.assertIn("sell_order_no", payload["fields"])
+        self.assertNotIn("transaction_amount", payload["fields"])
+
     def test_records_flattens_series_points_for_quant_analysis(self) -> None:
         records = Client.records(
             {
