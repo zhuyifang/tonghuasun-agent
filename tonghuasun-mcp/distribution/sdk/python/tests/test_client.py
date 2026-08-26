@@ -63,6 +63,17 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(context.exception.trace_id, "trace-1")
 
     @patch("tonghuasun_codex.client.urlopen")
+    def test_candles_sends_adjustment_mode(self, urlopen) -> None:
+        urlopen.return_value = FakeResponse({"ok": True, "data": {"items": []}})
+
+        self.client.candles("600151.SH", period=7, adjustment=1)
+
+        request = urlopen.call_args.args[0]
+        payload = json.loads(request.data)
+        self.assertEqual(payload["period"], 7)
+        self.assertEqual(payload["adjustment"], 1)
+
+    @patch("tonghuasun_codex.client.urlopen")
     def test_subscription_only_sends_realtime_subscription_fields(self, urlopen) -> None:
         urlopen.return_value = FakeResponse({"ok": True, "data": {"subscriptionId": "sub-1"}})
 

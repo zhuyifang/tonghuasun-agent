@@ -11,6 +11,7 @@ from .errors import ApiError
 
 Market = Literal[1, 2, 3]
 Level2Mode = Literal["orders", "trades", "cancels"]
+CandleAdjustment = Literal[0, 1, 2]
 
 DEFAULT_SNAPSHOT_FIELDS = (
     "full_code",
@@ -210,6 +211,7 @@ class Client:
         *,
         market: Market = 1,
         period: int = 7,
+        adjustment: CandleAdjustment = 0,
         limit: int = 200,
         fields: Sequence[str] | None = None,
         start: datetime | None = None,
@@ -224,6 +226,7 @@ class Client:
             end,
         )
         payload["period"] = period
+        payload["adjustment"] = adjustment
         return self.request("POST", "/api/v2/quotes/candle", payload)
 
     def ticks(

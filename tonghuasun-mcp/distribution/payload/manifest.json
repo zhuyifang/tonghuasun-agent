@@ -1,27 +1,27 @@
 {
   "schemaVersion": 1,
   "releaseVersion": "0.2.7",
-  "generatedAtUtc": "2026-08-25T11:07:28.9681754Z",
+  "generatedAtUtc": "2026-08-26T13:42:00.5555131Z",
   "files": [
     {
       "name": "ThsPlugin.Abstractions.dll",
       "size": 10240,
-      "sha256": "45b2d0365e481e96c84b826dcea25b363dd98c1c2c485fc8eb9af86196e0956c"
+      "sha256": "6031c3f78390aece229dce649bd9822799a43335026702c2a5d467ae114b7afc"
     },
     {
       "name": "ThsPlugin.Adapters.Hevo.dll",
-      "size": 553472,
-      "sha256": "bfb9cc9d6616afec52168902aad4ab45eb2a72f2276a0a5ddd7ecdec4d156eec"
+      "size": 556032,
+      "sha256": "5da3023858e0f12f5f21b591e8f4dc7e40969da1b4da48efeb80449d8f477837"
     },
     {
       "name": "ThsPlugin.Application.dll",
       "size": 7680,
-      "sha256": "09d4ea21afcefd986e6661fb6593fbcad67b4658988d688ea3721ba6717cbd50"
+      "sha256": "2e8e2baa42e40aa92eb4f8a75a36dcca3af727076a349396b5d12f12ea7204ed"
     },
     {
       "name": "ThsPlugin.Contracts.dll",
-      "size": 100352,
-      "sha256": "523774abb2f43960cc23a503e531460fa61064be728788be73e5100a9f44acfc"
+      "size": 100864,
+      "sha256": "5de9917cded30ca6efe02beea28f18a53f387c1542d57995937d0530b91f2cd7"
     },
     {
       "name": "ThsPlugin.Plugin.deps.json",
@@ -30,8 +30,8 @@
     },
     {
       "name": "ThsPlugin.Plugin.dll",
-      "size": 4921856,
-      "sha256": "f431eb4a090b065bc148f0cee405fe1ee9651abef0b4a783e0b27827fc04f6ef"
+      "size": 4936192,
+      "sha256": "7f4a09ce229108dd66b96d9c23e3a30e211fcecacf05cf81768ca6683315472a"
     }
   ]
 }
