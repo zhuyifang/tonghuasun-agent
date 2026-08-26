@@ -48,14 +48,7 @@
 ## 文档与交流
 
 - 本机接口文档：[127.0.0.1:17180/docs](http://127.0.0.1:17180/docs)
-- 抖音群：[点击加入](https://v.douyin.com/group/387998743372)
 - 微信群：同花顺 AI Agent 插件交流（当前二维码有效期至 2026 年 9 月 1 日；失效后请提交 Issue 提醒更新）
-
-<p align="center">
-  <a href="https://v.douyin.com/group/387998743372">
-    <img src="./assets/community/douyin-group-qr.png" alt="抖音群二维码" width="180">
-  </a>
-</p>
 
 <p align="center">
   <img src="./assets/community/wechat-agent-group-qr.jpg" alt="同花顺 AI Agent 插件交流群二维码，有效期至 2026 年 9 月 1 日" width="280">
