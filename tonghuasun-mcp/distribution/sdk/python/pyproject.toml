@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tonghuasun-codex"
-version = "0.2.7"
+version = "0.2.8"
 description = "同花顺 Codex 本地量化数据 API Python SDK"
 readme = "README.md"
 requires-python = ">=3.10"

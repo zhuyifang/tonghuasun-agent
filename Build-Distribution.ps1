@@ -678,7 +678,12 @@ try {
     Assert-StagedPackage $dshStage "DeepSeek Harness"
     Push-Location $dshStage
     try {
-        $packOutput = & npm pack --pack-destination $artifactDirectory --silent
+        # 发行打包使用独立缓存，避免用户全局 npm 缓存中的残留临时文件导致 EEXIST。
+        $npmPackCache = Join-Path $resolvedTemporaryRoot "npm-cache"
+        $packOutput = & npm pack `
+            --cache $npmPackCache `
+            --pack-destination $artifactDirectory `
+            --silent
         if ($LASTEXITCODE -ne 0) {
             throw "DeepSeek Harness npm 包生成失败。"
         }

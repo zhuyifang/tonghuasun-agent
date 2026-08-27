@@ -9,11 +9,11 @@
       "name": "tonghuasun-agent",
       "source": {
         "source": "archive",
-        "url": "https://github.com/zhuyifang/tonghuasun-agent/releases/download/v0.2.7/tonghuasun-agent-claude-code-0.2.7.zip",
-        "sha256": "2212c5e9c5fafb60149e5e51c30df55be408ad5a354b567763fde045d7fd852b"
+        "url": "https://github.com/zhuyifang/tonghuasun-agent/releases/download/v0.2.8/tonghuasun-agent-claude-code-0.2.8.zip",
+        "sha256": "09a8512607960ae0d071b285a2bfa1a9765867c652a892b5bc2764cf0788aa72"
       },
       "description": "连接本机同花顺，在 Claude Code 中查询行情、持仓并使用实时盯盘。",
-      "version": "0.2.7",
+      "version": "0.2.8",
       "author": {
         "name": "zhuyifang"
       },

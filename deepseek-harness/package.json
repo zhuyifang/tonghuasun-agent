@@ -1,6 +1,6 @@
 {
   "name": "tonghuasun-agent-deepseek-harness",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "同花顺 Agent 的 DeepSeek Harness Cordis 入口。",
   "license": "AGPL-3.0-only",
   "type": "module",

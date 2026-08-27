@@ -54,6 +54,22 @@
   <img src="./assets/community/wechat-agent-group-qr.jpg" alt="同花顺 AI Agent 插件交流群二维码，有效期至 2026 年 9 月 1 日" width="280">
 </p>
 
+## 获取本机 API 访问令牌
+
+安装时会自动生成本机 API 访问令牌，并保存在你的电脑上。打开 PowerShell，运行下面的命令即可查看：
+
+```powershell
+(Get-Content "$env:LOCALAPPDATA\TonghuasunCodex\config.json" -Raw | ConvertFrom-Json).localAccessToken
+```
+
+在接口文档的测试窗口或其他 API 客户端中，把获取到的令牌加入请求头：
+
+```text
+X-Tonghuasun-Codex-Token: 获取到的令牌
+```
+
+令牌只用于访问当前电脑上的同花顺接口，请不要截图、公开或发送给他人。如果命令提示配置文件不存在或令牌为空，请让 AI 助手执行“修复同花顺插件配置”，无需手动创建令牌。
+
 ## 关于交易功能
 
 交易工具默认关闭，只有你主动开启后才会出现；下单、撤单和改单前仍需你确认，插件不会自行发起交易。
@@ -72,7 +88,7 @@
 
 如果这个项目对你有帮助，欢迎打赏支持；打赏完全自愿，不影响任何功能、问题反馈或后续更新。
 
-赞助者：<a href="https://v.douyin.com/N-xSLIPMP-M/"><img src="./assets/sponsors/im-kim.png" alt="I'm Kim" width="32" height="32"></a> [**I'm Kim**](https://v.douyin.com/N-xSLIPMP-M/)
+赞助者：<a href="https://v.douyin.com/N-xSLIPMP-M/"><img src="./assets/sponsors/im-kim.png" alt="I'm Kim" width="32" height="32"></a> [**I'm Kim**](https://v.douyin.com/N-xSLIPMP-M/) · <img src="./assets/sponsors/adong.jpg" alt="阿东" width="32" height="32"> **阿东** · <img src="./assets/sponsors/xingguang.jpg" alt="星光" width="32" height="32"> **星光**
 
 ## 项目说明
 

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "tonghuasun-agent",
-  "version": "0.2.7",
+  "version": "0.2.8",
   "description": "连接本机同花顺，为 OpenClaw 提供证券资料、账户持仓、实时行情、盯盘界面和可选交易工具。",
   "author": {
     "name": "zhuyifang",
