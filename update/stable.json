@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "latestVersion": "0.2.8",
-  "publishedAtUtc": "2026-08-27T07:27:36Z",
+  "latestVersion": "0.2.9",
+  "publishedAtUtc": "2026-08-27T12:12:55Z",
   "releaseUrls": {
-    "gitee": "https://gitee.com/qicuo/tonghuasun-agent/releases/tag/v0.2.8",
-    "github": "https://github.com/zhuyifang/tonghuasun-agent/releases/tag/v0.2.8"
+    "gitee": "https://gitee.com/qicuo/tonghuasun-agent/releases/tag/v0.2.9",
+    "github": "https://github.com/zhuyifang/tonghuasun-agent/releases/tag/v0.2.9"
   }
 }

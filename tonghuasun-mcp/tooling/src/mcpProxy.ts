@@ -38,7 +38,7 @@ type RuntimeEndpoint = {
   port?: number;
 };
 
-const BRIDGE_VERSION = "0.2.8";
+const BRIDGE_VERSION = "0.2.9";
 const ACCESS_TOKEN_HEADER = "X-Tonghuasun-Codex-Token";
 const TEXT_COMPATIBILITY_ENABLED = isStructuredContentTextCompatibilityEnabled(
   process.env.TONGHUASUN_MCP_TEXT_COMPATIBILITY

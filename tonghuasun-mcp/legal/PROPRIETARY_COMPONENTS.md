@@ -1,14 +1,19 @@
 # 闭源组件边界
 
-本仓库公开 Agent 入口、MCP 适配层、界面、配置器和 Python SDK。C# 开发的
-同花顺本机插件源码暂时不公开。
+本仓库公开 Agent 入口、MCP 适配层、界面、配置器和 Python SDK。用于连接本机同花顺客户端的 C# 插件源码暂时不公开。
 
-以下内容不属于本仓库 AGPL-3.0 授权范围，也不会进入 Git 提交历史：
+公开仓库和发行包可以包含下列编译文件，方便用户直接安装：
 
-- `ThsPlugin.*.dll` 原生运行组件及其调试符号；
-- 同花顺宿主适配、反射调用、内部接口实现和逆向资料；
-- 原生组件的构建工程、探针、私有验证证据；
-- 签名密钥和本机运行配置。
+- `ThsPlugin.Abstractions.dll`
+- `ThsPlugin.Adapters.Hevo.dll`
+- `ThsPlugin.Application.dll`
+- `ThsPlugin.Contracts.dll`
+- `ThsPlugin.Plugin.dll`
+- `ThsPlugin.Plugin.deps.json`
 
-官方发行包需要原生组件才能连接本机同花顺。该组件由私有发布流水线注入，
-并以随发行包提供的独立许可说明为准。公开源码构建不会生成该组件。
+这些编译文件不因与公开源码一起分发而获得 AGPL 授权，适用
+`NATIVE_COMPONENT_LICENSE.md`。仓库不会公开相应的 C# 源码、项目文件、调试符号、
+私有研究资料、签名密钥或本机运行凭据。
+
+只使用公开源码构建时，不会重新生成上述闭源组件；制作完整安装包需要使用项目提供的
+已编译文件。

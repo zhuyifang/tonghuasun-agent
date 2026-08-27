@@ -10,5 +10,6 @@
 | esbuild | 前端与配置器构建 | MIT | https://github.com/evanw/esbuild |
 | TypeScript | TypeScript 编译器 | Apache-2.0 | https://github.com/microsoft/TypeScript |
 
-Node.js 与 Python 的完整传递依赖及版本以各模块锁文件为准。官方发行流水线应生成
-依赖物料清单，并把实际随包分发组件的许可证文本一并归档。
+Node.js 与 Python 的完整传递依赖及版本以各模块锁文件为准。发行包随附的第三方
+许可证文本位于 `distribution/licenses/`；如果发行内容发生变化，应同时更新本表和
+对应许可证文本。

@@ -1,4 +1,4 @@
-tonghuasun-codex
+tonghuasun-agent
 Copyright (c) 2026 zhuyifang and contributors
 
 本项目公开源码依据 GNU Affero General Public License v3.0 only
@@ -7,7 +7,7 @@ Copyright (c) 2026 zhuyifang and contributors
 依据 AGPL-3.0 第 7(b) 条及 `ADDITIONAL_TERMS.md`，分发、部署或修改本项目时
 必须保留以下合理署名：
 
-  基于 tonghuasun-codex 开发
+  基于 tonghuasun-agent 开发
   https://github.com/zhuyifang/tonghuasun-agent
 
 如果衍生产品具有“关于”“致谢”或类似界面，应在该界面展示上述署名；
