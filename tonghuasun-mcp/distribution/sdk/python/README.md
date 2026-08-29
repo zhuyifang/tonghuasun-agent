@@ -20,6 +20,7 @@ ths = Client.discover()
 
 kline = ths.candles("601727.SH", period=7, adjustment=1, limit=500)  # 0=不复权，1=前复权，2=后复权
 ticks = ths.ticks("601727.SH", limit=10_000)
+history = ths.trends("600519.SH", trade_date="2026-08-27")
 orders = ths.level2("601727.SH", mode="orders", limit=10_000)
 ```
 

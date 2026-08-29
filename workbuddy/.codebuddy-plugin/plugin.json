@@ -1,7 +1,7 @@
 {
   "name": "tonghuasun-agent",
   "displayName": "同花顺 Agent",
-  "version": "0.2.9",
+  "version": "0.2.10",
   "description": "连接本机同花顺，为 WorkBuddy 提供行情、持仓、盯盘和可选交易工具。",
   "author": {
     "name": "zhuyifang",

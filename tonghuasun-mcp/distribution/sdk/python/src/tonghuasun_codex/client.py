@@ -261,20 +261,23 @@ class Client:
         market: Market = 1,
         limit: int = 1_000,
         fields: Sequence[str] | None = None,
+        trade_date: date | datetime | str | None = None,
         start: datetime | None = None,
         end: datetime | None = None,
     ) -> dict[str, Any]:
+        payload = self._series_payload(
+            code,
+            market,
+            limit,
+            _field_list(fields, DEFAULT_TREND_FIELDS),
+            start,
+            end,
+        )
+        payload["tradeDate"] = _date_value(trade_date)
         return self.request(
             "POST",
             "/api/v2/quotes/trend",
-            self._series_payload(
-                code,
-                market,
-                limit,
-                _field_list(fields, DEFAULT_TREND_FIELDS),
-                start,
-                end,
-            ),
+            payload,
         )
 
     def security_info(

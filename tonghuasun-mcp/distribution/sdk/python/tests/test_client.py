@@ -1,6 +1,7 @@
 import io
 import json
 import unittest
+from datetime import date
 from pathlib import Path
 from unittest.mock import patch
 
@@ -99,6 +100,16 @@ class ClientTests(unittest.TestCase):
         self.assertIn("buy_order_no", payload["fields"])
         self.assertIn("sell_order_no", payload["fields"])
         self.assertNotIn("transaction_amount", payload["fields"])
+
+    @patch("tonghuasun_codex.client.urlopen")
+    def test_trends_sends_explicit_trade_date(self, urlopen) -> None:
+        urlopen.return_value = FakeResponse({"ok": True, "data": {"items": []}})
+
+        self.client.trends("600519.SH", trade_date=date(2026, 8, 27))
+
+        request = urlopen.call_args.args[0]
+        payload = json.loads(request.data)
+        self.assertEqual(payload["tradeDate"], "2026-08-27")
 
     def test_records_flattens_series_points_for_quant_analysis(self) -> None:
         records = Client.records(
