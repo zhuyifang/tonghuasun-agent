@@ -1,6 +1,6 @@
 {
   "name": "ths-mcp-server",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "description": "同花顺本机服务的配置器、MCP 传输桥和界面构建工具。",
   "license": "AGPL-3.0-only",
   "type": "module",

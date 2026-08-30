@@ -1,16 +1,16 @@
-# 0.2.10 更新说明
+# 0.2.11 更新说明
 
-这次更新开放历史分时查询，并修复分时数据时间偏移问题。
+这次更新修复资讯查询参数未生效的问题，快讯、个股新闻、公告和研报现在会按你的查询条件返回。
 
 ## 本次更新
 
-- REST API 的分时接口现在支持通过 `tradeDate` 查询指定交易日的数据。
-- MCP 的 `ths_price_series` 支持使用 `kind=trend` 和 `tradeDate` 读取历史分时。
-- Python SDK 的 `trends()` 新增 `trade_date` 参数。
-- 修复当前及历史分时数据可能出现 8 小时时间偏移的问题。
-- 日期与查询时间范围不一致时会直接返回清晰的参数提示，避免混入其他交易日数据。
-- README 增加交易功能测试状态说明；交易功能尚未经过完整测试，如遇问题，请提交 Issue。
-- Codex、Claude Code、WorkBuddy、ZCode、OpenClaw 和 DeepSeek Harness 的安装包统一升级到 0.2.10。
+- 修复 `/api/v2/news/query` 未正确应用 `businessType`、`tabs` 和 `keyword` 的问题。
+- 市场快讯支持全部、重要、A股、港股、美股、机会、异动和公告栏目。
+- 支持按股票名称或代码查询 A 股、港股和美股的新闻、公告、重要公告及研报。
+- 修复多栏目合并和连续翻页时可能重复或漏掉资讯的问题。
+- MCP 工具 `ths_news_query` 与 REST API 使用相同的查询能力和参数规则。
+- 不支持的栏目或参数组合会直接给出可操作的提示，不再静默忽略。
+- Codex、Claude Code、WorkBuddy、ZCode、OpenClaw 和 DeepSeek Harness 的安装包统一升级到 0.2.11。
 
 ## 安装
 
@@ -18,5 +18,5 @@
 
 ## 兼容说明
 
-- 已在同花顺远航版 11.4.1.3 上完成历史分时、REST API、MCP 和 Python SDK 验证。
+- 已在同花顺远航版 11.4.1.3 上完成市场快讯、A/H/美股资讯、REST API 和 MCP 验证。
 - 本次更新不会增加或改变你的行情、账户和交易权限；实际可用功能仍以当前账户已经开通的权限为准。
