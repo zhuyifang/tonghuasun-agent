@@ -52,10 +52,10 @@
 ## 文档与交流
 
 - 本机接口文档：[127.0.0.1:17180/docs](http://127.0.0.1:17180/docs)
-- 微信群：同花顺 AI Agent 插件交流（当前二维码有效期至 2026 年 9 月 1 日；失效后请提交 Issue 提醒更新）
+- 微信群：同花顺 AI Agent 插件交流（当前二维码有效期至 2026 年 9 月 7 日；失效后请提交 Issue 提醒更新）
 
 <p align="center">
-  <img src="./assets/community/wechat-agent-group-qr.jpg" alt="同花顺 AI Agent 插件交流群二维码，有效期至 2026 年 9 月 1 日" width="280">
+  <img src="./assets/community/wechat-agent-group-qr.jpg" alt="同花顺 AI Agent 插件交流群二维码，有效期至 2026 年 9 月 7 日" width="280">
 </p>
 
 ## 获取本机 API 访问令牌
