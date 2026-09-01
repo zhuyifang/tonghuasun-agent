@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param()
 
 $ErrorActionPreference = "Stop"
@@ -30,6 +30,8 @@ Assert-AdapterVersion (Join-Path $agentRoot "claude-code\.claude-plugin\plugin.j
 Assert-AdapterVersion (Join-Path $agentRoot "workbuddy\.codebuddy-plugin\plugin.json") "WorkBuddy"
 Assert-AdapterVersion (Join-Path $agentRoot "zcode\.zcode-plugin\plugin.json") "ZCode"
 Assert-AdapterVersion (Join-Path $agentRoot "openclaw\plugin.json") "OpenClaw"
+Assert-AdapterVersion (Join-Path $agentRoot "doubao\plugin.json") "豆包"
+Assert-AdapterVersion (Join-Path $agentRoot "qianwen\plugin.json") "千问"
 Assert-AdapterVersion (Join-Path $agentRoot "deepseek-harness\package.json") "DeepSeek Harness"
 Assert-AdapterVersion (Join-Path $toolingRoot "package.json") "MCP Node 工具包"
 
@@ -144,11 +146,20 @@ if ($forbiddenPayloadSources.Count -gt 0) {
     throw "闭源发行目录不得包含 C# 源码或工程文件：$($forbiddenPayloadSources.FullName -join ', ')"
 }
 
-function Copy-ReleaseTree([string]$SourcePath, [string]$DestinationPath) {
+function Copy-ReleaseTree(
+    [string]$SourcePath,
+    [string]$DestinationPath,
+    [string[]]$ExcludedRelativePaths = @()
+) {
     $resolvedSourcePath = (Resolve-Path -LiteralPath $SourcePath).Path
+    $excludedPathSet = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($excludedRelativePath in $ExcludedRelativePaths) {
+        [void]$excludedPathSet.Add($excludedRelativePath.Replace("/", "\").TrimStart("\"))
+    }
     Get-ChildItem -LiteralPath $resolvedSourcePath -Recurse -File -Force |
         Where-Object {
             $relativePath = $_.FullName.Substring($resolvedSourcePath.Length).TrimStart("\")
+            -not $excludedPathSet.Contains($relativePath) -and
             $relativePath -notmatch "(^|\\)(node_modules|dist|bin|obj|__pycache__|\.secrets|\.git|host|control-plane)(\\|$)" -and
             $_.Name -notin @(".env", ".env.local", ".mcp.json") -and
             $_.Extension -notin @(".pyc", ".cs", ".csproj", ".sln", ".slnx")
@@ -170,7 +181,30 @@ function Copy-CommonPackage([string]$DestinationPath) {
         Copy-ReleaseTree $sourceDirectory (Join-Path $DestinationPath $directoryName)
     }
 
-    Copy-ReleaseTree (Join-Path $coreRoot "legal") $DestinationPath
+    # 各宿主入口都拥有自己的安装 README。法律目录中的索引只用于仓库浏览，
+    # 不能在发行包中覆盖面向该宿主的安装说明。
+    Copy-ReleaseTree (Join-Path $coreRoot "legal") $DestinationPath @("README.md")
+}
+
+function Merge-AdapterSkill([string]$PackageRoot, [string]$AdapterName) {
+    $skillDirectory = Join-Path $PackageRoot "skills\tonghuasun-agent"
+    $commonSkillPath = Join-Path $skillDirectory "SKILL.md"
+    $adapterGuidancePath = Join-Path $skillDirectory "ADAPTER.md"
+    foreach ($requiredPath in @($commonSkillPath, $adapterGuidancePath)) {
+        if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
+            throw "$AdapterName 缺少公共技能或专属适配片段：$requiredPath"
+        }
+    }
+
+    $commonSkill = (Get-Content -LiteralPath $commonSkillPath -Raw -Encoding UTF8).TrimEnd()
+    $adapterGuidance = (Get-Content -LiteralPath $adapterGuidancePath -Raw -Encoding UTF8).Trim()
+    $mergedSkill = $commonSkill + [Environment]::NewLine + [Environment]::NewLine +
+        $adapterGuidance + [Environment]::NewLine
+    [IO.File]::WriteAllText(
+        $commonSkillPath,
+        $mergedSkill,
+        [Text.UTF8Encoding]::new($false))
+    Remove-Item -LiteralPath $adapterGuidancePath -Force
 }
 
 function Assert-NoLegacyCommercialState([string]$PackageRoot, [string]$AdapterName) {
@@ -229,11 +263,16 @@ function Assert-StagedPackage([string]$PackageRoot, [string]$AdapterName) {
         "payload\ths-plugin\ThsPlugin.Plugin.dll",
         "scripts\configure.mjs",
         "scripts\tonghuasun-mcp-proxy.mjs",
-        "skills\configure-ths\SKILL.md"
+        "skills\configure-ths\SKILL.md",
+        "skills\tonghuasun-agent\SKILL.md"
     )) {
         if (-not (Test-Path -LiteralPath (Join-Path $PackageRoot $relativePath))) {
             throw "$AdapterName 发行包缺少：$relativePath"
         }
+    }
+
+    if (Test-Path -LiteralPath (Join-Path $PackageRoot "skills\tonghuasun-agent\ADAPTER.md")) {
+        throw "$AdapterName 发行包仍包含未合成的专属适配片段。"
     }
 
     $forbiddenFiles = Get-ChildItem -LiteralPath $PackageRoot -Recurse -File -Force |
@@ -254,6 +293,102 @@ function Assert-StagedPackage([string]$PackageRoot, [string]$AdapterName) {
         $text = Get-Content -LiteralPath $configFile.FullName -Raw -Encoding UTF8
         if ($text -match "CONFIGURE_REQUIRED" -or $text -match "X-Tonghuasun-Codex-Token") {
             throw "$AdapterName 宿主入口仍包含令牌或令牌占位符：$($configFile.Name)"
+        }
+    }
+}
+
+function Assert-DoubaoPackage([string]$PackageRoot) {
+    $manifestPath = Join-Path $PackageRoot "plugin.json"
+    $readmePath = Join-Path $PackageRoot "README.md"
+    $installerPath = Join-Path $PackageRoot "install.ps1"
+    $setupPath = Join-Path $PackageRoot "setup.ps1"
+    $skillPath = Join-Path $PackageRoot "skills\tonghuasun-agent\SKILL.md"
+    foreach ($requiredPath in @($manifestPath, $readmePath, $installerPath, $setupPath, $skillPath)) {
+        if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
+            throw "豆包发行包缺少原生 MCP 入口说明：$requiredPath"
+        }
+    }
+
+    $readme = Get-Content -LiteralPath $readmePath -Raw -Encoding UTF8
+    foreach ($requiredMarker in @(
+        "连接方式：HTTP",
+        "http://127.0.0.1:17180/mcp",
+        "X-Tonghuasun-Codex-Token"
+    )) {
+        if (-not $readme.Contains($requiredMarker, [StringComparison]::Ordinal)) {
+            throw "豆包发行包的安装说明缺少原生 MCP 配置：$requiredMarker"
+        }
+    }
+    if ($readme -match "STDIO|powershell\.exe|tonghuasun-mcp-proxy\.ps1") {
+        throw "豆包发行包仍把 STDIO 或 PowerShell 代理写成正式接入方式。"
+    }
+
+    $installerText = Get-Content -LiteralPath $installerPath -Raw -Encoding UTF8
+    foreach ($requiredMarker in @(
+        "Doubao\User Data",
+        ".user_skills\tonghuasun-agent",
+        "TonghuasunCodex\agents\doubao"
+    )) {
+        if (-not $installerText.Contains($requiredMarker, [StringComparison]::Ordinal)) {
+            throw "豆包技能安装器缺少必要步骤：$requiredMarker"
+        }
+    }
+
+    $setupText = Get-Content -LiteralPath $setupPath -Raw -Encoding UTF8
+    foreach ($requiredMarker in @(
+        "http://127.0.0.1:17180/health",
+        "scripts\configure.mjs",
+        "install.ps1"
+    )) {
+        if (-not $setupText.Contains($requiredMarker, [StringComparison]::Ordinal)) {
+            throw "豆包统一安装入口缺少必要步骤：$requiredMarker"
+        }
+    }
+}
+
+function Assert-QianwenPackage([string]$PackageRoot) {
+    $manifestPath = Join-Path $PackageRoot "plugin.json"
+    $readmePath = Join-Path $PackageRoot "README.md"
+    $installerPath = Join-Path $PackageRoot "install.ps1"
+    $setupPath = Join-Path $PackageRoot "setup.ps1"
+    $skillPath = Join-Path $PackageRoot "skills\tonghuasun-agent\SKILL.md"
+    foreach ($requiredPath in @($manifestPath, $readmePath, $installerPath, $setupPath, $skillPath)) {
+        if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) {
+            throw "千问发行包缺少原生入口：$requiredPath"
+        }
+    }
+
+    $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    if ([string]$manifest.apiVersion -ne "qwen-agent/plugin/v1" -or
+        [string]$manifest.id -ne "tonghuasun-agent") {
+        throw "千问插件清单格式无效。"
+    }
+    $manifestText = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8
+    if ($manifestText -notmatch [regex]::Escape('${QWEN_PLUGIN_ROOT}') -or
+        $manifestText -notmatch "TONGHUASUN_MCP_TEXT_COMPATIBILITY") {
+        throw "千问插件清单缺少本机 MCP 传输桥或文字兼容配置。"
+    }
+
+    $installerText = Get-Content -LiteralPath $installerPath -Raw -Encoding UTF8
+    foreach ($requiredMarker in @(
+        "Qianwen\User Data\qwen-agent",
+        "mcp.json",
+        "skills\tonghuasun-agent",
+        "tonghuasun-mcp-proxy.mjs"
+    )) {
+        if (-not $installerText.Contains($requiredMarker, [StringComparison]::Ordinal)) {
+            throw "千问安装器缺少配置步骤：$requiredMarker"
+        }
+    }
+
+    $setupText = Get-Content -LiteralPath $setupPath -Raw -Encoding UTF8
+    foreach ($requiredMarker in @(
+        "http://127.0.0.1:17180/health",
+        "scripts\configure.mjs",
+        "install.ps1"
+    )) {
+        if (-not $setupText.Contains($requiredMarker, [StringComparison]::Ordinal)) {
+            throw "千问统一安装入口缺少必要步骤：$requiredMarker"
         }
     }
 }
@@ -608,6 +743,7 @@ try {
     New-Item -ItemType Directory -Path $codexStage -Force | Out-Null
     Copy-ReleaseTree (Join-Path $agentRoot "codex") $codexStage
     Copy-CommonPackage $codexStage
+    Merge-AdapterSkill $codexStage "Codex"
     Copy-Item -LiteralPath (Join-Path $agentRoot "codex\.mcp.example.json") -Destination (Join-Path $codexStage ".mcp.json")
     Assert-StagedPackage $codexStage "Codex"
     $builtArtifacts += Compress-Plugin $codexStage "tonghuasun-codex" "tonghuasun-agent-codex-$releaseVersion.zip"
@@ -616,6 +752,7 @@ try {
     New-Item -ItemType Directory -Path $claudeStage -Force | Out-Null
     Copy-ReleaseTree (Join-Path $agentRoot "claude-code") $claudeStage
     Copy-CommonPackage $claudeStage
+    Merge-AdapterSkill $claudeStage "Claude Code"
     Copy-Item -LiteralPath (Join-Path $agentRoot "claude-code\.mcp.json") -Destination (Join-Path $claudeStage ".mcp.json")
     Assert-StagedPackage $claudeStage "Claude Code"
     $claudeArtifact = Compress-Plugin $claudeStage "tonghuasun-agent" "tonghuasun-agent-claude-code-$releaseVersion.zip"
@@ -627,6 +764,7 @@ try {
     Copy-ReleaseTree (Join-Path $agentRoot "workbuddy") $workBuddyStage
     Copy-Item -LiteralPath (Join-Path $agentRoot "workbuddy\.mcp.json") -Destination (Join-Path $workBuddyStage ".mcp.json")
     Copy-CommonPackage $workBuddyStage
+    Merge-AdapterSkill $workBuddyStage "WorkBuddy"
     Assert-StagedPackage $workBuddyStage "WorkBuddy"
     Assert-WorkBuddyPackage $workBuddyStage
     $workBuddyArtifact = Compress-Plugin $workBuddyStage "tonghuasun-agent" "tonghuasun-agent-workbuddy-$releaseVersion.zip"
@@ -638,6 +776,7 @@ try {
     Copy-ReleaseTree (Join-Path $agentRoot "zcode") $zCodeStage
     Copy-Item -LiteralPath (Join-Path $agentRoot "zcode\.mcp.json") -Destination (Join-Path $zCodeStage ".mcp.json")
     Copy-CommonPackage $zCodeStage
+    Merge-AdapterSkill $zCodeStage "ZCode"
     Assert-StagedPackage $zCodeStage "ZCode"
     Assert-ZCodePackage $zCodeStage
 
@@ -662,6 +801,7 @@ try {
     New-Item -ItemType Directory -Path $openClawStage -Force | Out-Null
     Copy-ReleaseTree (Join-Path $agentRoot "openclaw") $openClawStage
     Copy-CommonPackage $openClawStage
+    Merge-AdapterSkill $openClawStage "OpenClaw"
     Assert-StagedPackage $openClawStage "OpenClaw"
     Assert-OpenClawPackage $openClawStage
     $openClawArtifact = Compress-Plugin `
@@ -671,10 +811,37 @@ try {
     Assert-OpenClawArchive $openClawArtifact "tonghuasun-agent"
     $builtArtifacts += $openClawArtifact
 
+    $doubaoStage = Join-Path $resolvedTemporaryRoot "doubao"
+    New-Item -ItemType Directory -Path $doubaoStage -Force | Out-Null
+    Copy-ReleaseTree (Join-Path $agentRoot "doubao") $doubaoStage
+    Copy-CommonPackage $doubaoStage
+    Merge-AdapterSkill $doubaoStage "豆包"
+    Assert-StagedPackage $doubaoStage "豆包"
+    Assert-DoubaoPackage $doubaoStage
+    $doubaoArtifact = Compress-Plugin `
+        $doubaoStage `
+        "tonghuasun-agent" `
+        "tonghuasun-agent-doubao-$releaseVersion.zip"
+    $builtArtifacts += $doubaoArtifact
+
+    $qianwenStage = Join-Path $resolvedTemporaryRoot "qianwen"
+    New-Item -ItemType Directory -Path $qianwenStage -Force | Out-Null
+    Copy-ReleaseTree (Join-Path $agentRoot "qianwen") $qianwenStage
+    Copy-CommonPackage $qianwenStage
+    Merge-AdapterSkill $qianwenStage "千问"
+    Assert-StagedPackage $qianwenStage "千问"
+    Assert-QianwenPackage $qianwenStage
+    $qianwenArtifact = Compress-Plugin `
+        $qianwenStage `
+        "tonghuasun-agent" `
+        "tonghuasun-agent-qianwen-$releaseVersion.zip"
+    $builtArtifacts += $qianwenArtifact
+
     $dshStage = Join-Path $resolvedTemporaryRoot "deepseek-harness"
     New-Item -ItemType Directory -Path $dshStage -Force | Out-Null
     Copy-ReleaseTree (Join-Path $agentRoot "deepseek-harness") $dshStage
     Copy-CommonPackage $dshStage
+    Merge-AdapterSkill $dshStage "DeepSeek Harness"
     Assert-StagedPackage $dshStage "DeepSeek Harness"
     Push-Location $dshStage
     try {

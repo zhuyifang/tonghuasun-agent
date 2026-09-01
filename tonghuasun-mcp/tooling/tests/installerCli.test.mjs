@@ -75,6 +75,18 @@ test("卸载预检和保留旧状态均不修改本机文件", () => {
   }
 });
 
+test("安装器只登记本机和私有局域网地址", () => {
+  const source = readFileSync(resolve("src", "installer.ts"), "utf8");
+
+  assert.match(source, /http:\/\/\$\{address\}:\$\{port\}\//);
+  assert.match(source, /remoteip=LocalSubnet/);
+  assert.match(source, /profile=private,domain/);
+  assert.match(source, /isIdempotentFirewallDelete/);
+  assert.match(source, /-Wait -PassThru `\s*\n\s*\+ `-ArgumentList/);
+  assert.match(source, /\["http", "delete", "urlacl", `url=\$\{legacyWildcardPrefix\}`\]/);
+  assert.doesNotMatch(source, /\["http", "add", "urlacl", `url=\$\{legacyWildcardPrefix\}`\]/);
+});
+
 function runInstaller(args, productHome) {
   return spawnSync(process.execPath, [installerPath, ...args], {
     cwd: process.cwd(),

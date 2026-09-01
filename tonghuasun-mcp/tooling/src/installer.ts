@@ -14,6 +14,7 @@ import {
 } from "node:fs";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { execFileSync } from "node:child_process";
+import { networkInterfaces } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -58,6 +59,7 @@ type ProductConfig = {
   preferredPort: number;
   portRangeStart: number;
   portRangeEnd: number;
+  listenAddresses?: string[];
   localAccessToken: string;
   deviceId: string;
   enableTradeTools: boolean;
@@ -133,6 +135,7 @@ function configure(options: CliOptions): Record<string, unknown> {
   const existingConfig = readJson<ProductConfig>(configPath);
   const thsPaths = resolveThsPaths(options.thsPath ?? existingConfig?.thsInstallPath);
   const port = validatePort(options.port ?? existingConfig?.preferredPort ?? 17180);
+  const listenAddresses = resolveListenAddresses();
   const version = options.version?.trim() || resolvePackagedVersion();
   const payloadPath = resolve(options.payloadPath ?? join(resolvePluginRoot(), "payload", "ths-plugin"));
   validatePayload(payloadPath);
@@ -160,6 +163,7 @@ function configure(options: CliOptions): Record<string, unknown> {
       releaseVersion: version,
       hostCompatibility,
       requestedMode: options.mode,
+      listenAddresses,
       force: options.force,
       hasConflicts: conflicts.length > 0,
       deploymentPlan,
@@ -175,7 +179,7 @@ function configure(options: CliOptions): Record<string, unknown> {
   }
 
   ensureHostStopped();
-  ensureHttpUrlAcl(port);
+  ensureNetworkAccess(port, listenAddresses);
 
   const releasePath = join(productHome, "releases", sanitizePathSegment(version), "ths-plugin");
   mkdirSync(releasePath, { recursive: true });
@@ -196,13 +200,14 @@ function configure(options: CliOptions): Record<string, unknown> {
     : removeLegacyCommercialState(productHome, resolvePluginRoot(), [releasePath]);
 
   const config: ProductConfig = {
-    schemaVersion: 3,
+    schemaVersion: 4,
     thsInstallPath: thsPaths.installPath,
     thsBinPath: thsPaths.binPath,
     pluginDirectory: thsPaths.pluginDirectory,
     preferredPort: port,
     portRangeStart: port,
     portRangeEnd: port,
+    listenAddresses,
     localAccessToken: resolveLocalAccessToken(existingConfig?.localAccessToken, options.rotateToken),
     deviceId: existingConfig?.deviceId || randomUUID(),
     enableTradeTools: options.enableTradeTools ?? existingConfig?.enableTradeTools ?? false,
@@ -226,6 +231,7 @@ function configure(options: CliOptions): Record<string, unknown> {
     activeReleasePath: config.activeReleasePath,
     deploymentMode: config.deploymentMode,
     preferredPort: config.preferredPort,
+    listenAddresses: config.listenAddresses,
     deviceId: config.deviceId,
     enableTradeTools: config.enableTradeTools,
     enableAutomatedTradeApi: config.enableAutomatedTradeApi,
@@ -243,12 +249,12 @@ function configure(options: CliOptions): Record<string, unknown> {
     localAccessTokenRotated: options.rotateToken === true,
     forcedOverwrite: options.force,
     legacyStatePreserved: options.keepLegacyState,
-    startupGuide: createStartupGuide(port),
+    startupGuide: createStartupGuide(port, listenAddresses),
     nextAction: "请启动同花顺，并重启当前 Agent 宿主或新建任务以重新加载 MCP。"
   };
 }
 
-function createStartupGuide(port: number): Record<string, unknown> {
+function createStartupGuide(port: number, listenAddresses: string[]): Record<string, unknown> {
   return {
     title: "同花顺启动后可使用以下本机入口：",
     endpoints: [
@@ -273,7 +279,10 @@ function createStartupGuide(port: number): Record<string, unknown> {
         usage: "订阅实时行情和事件推送。"
       }
     ],
-    notice: "以上入口仅监听本机，访问时需要本机访问令牌。"
+    lanBaseUrls: listenAddresses
+      .filter((address) => address !== "127.0.0.1")
+      .map((address) => `http://${address}:${port}`),
+    notice: "服务只接受当前电脑和同一局域网访问；局域网调用同样需要访问令牌，公网请求会被拒绝。局域网地址变化后请重新运行配置器。"
   };
 }
 
@@ -408,7 +417,9 @@ function readStatus(): Record<string, unknown> {
       : null,
     endpoint,
     hostCompatibility: config ? readHostCompatibility(config.thsBinPath) : null,
-    startupGuide: config ? createStartupGuide(config.preferredPort) : null,
+    startupGuide: config
+      ? createStartupGuide(config.preferredPort, config.listenAddresses ?? ["127.0.0.1"])
+      : null,
     mappings,
     healthyMappings: mappings.filter((item) => item.healthy).length,
     totalMappings: mappings.length
@@ -779,28 +790,90 @@ function isHostRunning(): boolean {
   }
 }
 
-function ensureHttpUrlAcl(port: number): void {
-  const prefix = `http://+:${port}/`;
+function ensureNetworkAccess(port: number, listenAddresses: string[]): void {
   const user = execFileSync("whoami.exe", [], { encoding: "utf8", windowsHide: true }).trim();
-  const current = execFileSync("netsh.exe", ["http", "show", "urlacl", `url=${prefix}`], {
-    encoding: "utf8",
-    windowsHide: true
-  });
-  if (current.toLowerCase().includes(user.toLowerCase())) {
+  const commands: string[][] = [];
+
+  for (const address of listenAddresses) {
+    const prefix = `http://${address}:${port}/`;
+    const current = readHttpUrlAcl(prefix);
+    if (current.toLowerCase().includes(user.toLowerCase())) {
+      continue;
+    }
+    if (hasHttpUrlAcl(current)) {
+      throw new Error(`端口 ${port} 的 HTTP URL ACL 已属于其他用户，请先由管理员检查：${prefix}`);
+    }
+    commands.push(["http", "add", "urlacl", `url=${prefix}`, `user=${user}`, "listen=yes", "delegate=no"]);
+  }
+
+  const legacyWildcardPrefix = `http://+:${port}/`;
+  const legacyWildcardAcl = readHttpUrlAcl(legacyWildcardPrefix);
+  if (hasHttpUrlAcl(legacyWildcardAcl)) {
+    if (!legacyWildcardAcl.toLowerCase().includes(user.toLowerCase())) {
+      throw new Error(`端口 ${port} 仍有其他用户的通配 URL ACL，请先由管理员检查：${legacyWildcardPrefix}`);
+    }
+    commands.push(["http", "delete", "urlacl", `url=${legacyWildcardPrefix}`]);
+  }
+
+  if (listenAddresses.some((address) => address !== "127.0.0.1")) {
+    const firewallRuleName = `同花顺 Agent 局域网访问 (${port})`;
+    commands.push(["advfirewall", "firewall", "delete", "rule", `name=${firewallRuleName}`]);
+    commands.push([
+      "advfirewall",
+      "firewall",
+      "add",
+      "rule",
+      `name=${firewallRuleName}`,
+      "dir=in",
+      "action=allow",
+      "protocol=TCP",
+      `localport=${port}`,
+      "remoteip=LocalSubnet",
+      "profile=private,domain"
+    ]);
+  }
+
+  if (commands.length === 0) {
     return;
   }
 
-  if (/Reserved URL|保留的 URL|预留 URL/i.test(current)) {
-    throw new Error(`端口 ${port} 的 HTTP URL ACL 已属于其他用户，请先由管理员检查：${prefix}`);
-  }
+  runElevatedNetshCommands(
+    commands,
+    "无法配置同花顺 Agent 的本机与局域网网络边界；请接受 Windows UAC 后重试。",
+  );
+}
 
-  // URL ACL 是 HttpListener 在普通用户权限下监听固定端口的前提。Windows 会显示标准 UAC，
-  // 用户拒绝时配置立即终止，不会绕过系统授权。
+function readHttpUrlAcl(prefix: string): string {
+  return execFileSync("netsh.exe", ["http", "show", "urlacl", `url=${prefix}`], {
+    encoding: "utf8",
+    windowsHide: true
+  });
+}
+
+function hasHttpUrlAcl(output: string): boolean {
+  return /Reserved URL|保留的 URL|预留 URL/i.test(output);
+}
+
+function runElevatedNetshCommands(commands: string[][], failureMessage: string): void {
+  // 所有网络规则通过一次 UAC 完成，避免为多个明确地址反复弹出授权窗口。
+  const innerCommand = commands
+    .map((args) => {
+      const command = `& 'netsh.exe' ${args.map(quotePowerShellArgument).join(" ")}`;
+      const isIdempotentFirewallDelete = args[0] === "advfirewall"
+        && args[1] === "firewall"
+        && args[2] === "delete";
+      return isIdempotentFirewallDelete
+        ? command
+        : `${command}; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }`;
+    })
+    .join("; ");
+  const innerEncodedCommand = Buffer.from(innerCommand, "utf16le").toString("base64");
+  // 这是需要用户确认的前台 UAC 操作，保持可见，避免授权窗口被隐藏后安装器一直等待。
   const elevatedCommand = [
-    `$process = Start-Process -FilePath 'netsh.exe' -Verb RunAs -Wait -PassThru -ArgumentList @(`,
-    `'http','add','urlacl','url=${prefix}','user=${user}','listen=yes','delegate=no'`,
-    `); exit $process.ExitCode`
-  ].join(" ");
+    `$process = Start-Process -FilePath 'powershell.exe' -Verb RunAs -Wait -PassThru `
+      + `-ArgumentList @('-NoProfile','-EncodedCommand','${innerEncodedCommand}')`,
+    `exit $process.ExitCode`
+  ].join("; ");
   const encodedCommand = Buffer.from(elevatedCommand, "utf16le").toString("base64");
   try {
     execFileSync("powershell.exe", ["-NoProfile", "-EncodedCommand", encodedCommand], {
@@ -808,8 +881,42 @@ function ensureHttpUrlAcl(port: number): void {
       windowsHide: false
     });
   } catch {
-    throw new Error(`无法为 ${prefix} 配置当前用户 URL ACL；请接受 Windows UAC 后重试。`);
+    throw new Error(failureMessage);
   }
+}
+
+function quotePowerShellArgument(value: string): string {
+  return `'${value.replaceAll("'", "''")}'`;
+}
+
+function resolveListenAddresses(): string[] {
+  const addresses = new Set<string>(["127.0.0.1"]);
+  for (const entries of Object.values(networkInterfaces())) {
+    for (const entry of entries ?? []) {
+      if (!entry.internal && entry.family === "IPv4" && isPrivateLanIpv4(entry.address)) {
+        addresses.add(entry.address);
+      }
+    }
+  }
+
+  return [...addresses].sort((left, right) => {
+    if (left === "127.0.0.1") return -1;
+    if (right === "127.0.0.1") return 1;
+    return left.localeCompare(right, "en");
+  });
+}
+
+function isPrivateLanIpv4(value: string): boolean {
+  const parts = value.split(".").map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return false;
+  }
+
+  const [first = 0, second = 0] = parts;
+  return first === 10
+    || first === 172 && second >= 16 && second <= 31
+    || first === 192 && second === 168
+    || first === 169 && second === 254;
 }
 
 function ensureHostStopped(): void {

@@ -4,7 +4,7 @@
 
 这是一个由独立开发者维护的非官方项目，与同花顺及其关联公司不存在授权、合作或背书关系。
 
-在 Codex、Claude Code、WorkBuddy、ZCode、OpenClaw 或 DeepSeek Harness 中，直接查询你电脑上的同花顺行情、K 线、持仓、委托和成交数据。
+在 Codex、Claude Code、WorkBuddy、ZCode、OpenClaw、DeepSeek Harness、豆包或千问中，直接查询你电脑上的同花顺行情、K 线、持仓、委托和成交数据。
 
 插件不会为你增加任何行情、账户或交易权限。你能看到的数据和能使用的功能，仍以当前登录的同花顺账户、证券账户及相应服务权限为准。
 
@@ -31,6 +31,8 @@
 - [在 ZCode 中安装](./zcode/README.md)
 - [在 OpenClaw 中安装](./openclaw/README.md)
 - [在 DeepSeek Harness 中安装](./deepseek-harness/README.md)
+- [在豆包中安装](./doubao/README.md)
+- [在千问中安装](./qianwen/README.md)
 
 ## 你可以直接这样问
 
@@ -90,7 +92,7 @@ X-Tonghuasun-Codex-Token: 获取到的令牌
 
 本项目不运营用于接收行情、账户或交易数据的远程服务器。插件读取到的数据只会在你的电脑上处理，并交给当前电脑上调用它的 AI 助手或程序；这些数据不会上传给项目维护者。
 
-本机接口只接受当前电脑的访问，并使用随机生成的访问令牌。插件会从 GitHub 或 Gitee 获取公开版本信息，但请求中不包含行情、账户或交易内容；问财查询会按功能需要访问同花顺服务。使用云端 Agent 或模型时，工具结果可能由你选择的服务处理，具体以该服务的隐私政策和设置为准。
+本机接口只绑定 `127.0.0.1` 和当前电脑的私有局域网地址，不使用通配地址，也不接受公网访问。局域网设备调用接口时同样必须提供随机生成的访问令牌；Windows 防火墙只允许专用网络或域网络中的本地子网访问。请只在你信任的局域网中使用，不要通过端口映射、内网穿透或反向代理把接口开放到公网；更换网络后如果电脑的局域网地址发生变化，请重新运行插件配置。插件会从 GitHub 或 Gitee 获取公开版本信息，但请求中不包含行情、账户或交易内容；问财查询会按功能需要访问同花顺服务。使用云端 Agent 或模型时，工具结果可能由你选择的服务处理，具体以该服务的隐私政策和设置为准。
 
 详细说明见[隐私政策](./tonghuasun-mcp/legal/PRIVACY.md)。
 
@@ -104,7 +106,7 @@ X-Tonghuasun-Codex-Token: 获取到的令牌
 
 如果这个项目对你有帮助，欢迎打赏支持。打赏完全自愿，不用于购买任何功能、数据权限、投资建议、问题处理优先级或后续服务承诺。
 
-赞助者：<a href="https://v.douyin.com/N-xSLIPMP-M/"><img src="./assets/sponsors/im-kim.png" alt="I'm Kim" width="32" height="32"></a> [**I'm Kim**](https://v.douyin.com/N-xSLIPMP-M/) · <img src="./assets/sponsors/adong.jpg" alt="阿东" width="32" height="32"> **阿东** · <img src="./assets/sponsors/xingguang.jpg" alt="星光" width="32" height="32"> **星光**
+赞助者：<img src="./assets/sponsors/feng-kevin.jpg" alt="峰-Kevin" width="32" height="32"> **峰-Kevin** · <img src="./assets/sponsors/adong.jpg" alt="阿东" width="32" height="32"> **阿东** · <img src="./assets/sponsors/xingguang.jpg" alt="星光" width="32" height="32"> **星光** · <img src="./assets/sponsors/xu.jpg" alt="許" width="32" height="32"> **許**
 
 ## 项目说明
 

@@ -3,8 +3,8 @@ const STRUCTURED_CONTENT_MARKER = "同花顺结构化结果(JSON)：";
 type JsonObject = Record<string, unknown>;
 
 /**
- * WorkBuddy 当前只把 MCP content 文本块交给模型，不会转发 structuredContent。
- * 此兼容层只由 WorkBuddy 入口显式开启，其他宿主继续使用标准 MCP 结构化结果。
+ * 部分客户端只把 MCP content 文本块交给模型，不会转发 structuredContent。
+ * 此兼容层只由需要它的入口显式开启，其他客户端继续使用标准 MCP 结构化结果。
  */
 export function appendStructuredContentTextFallback<T>(result: T, enabled: boolean): T {
   if (!enabled || !isJsonObject(result) || !Object.hasOwn(result, "structuredContent")) {

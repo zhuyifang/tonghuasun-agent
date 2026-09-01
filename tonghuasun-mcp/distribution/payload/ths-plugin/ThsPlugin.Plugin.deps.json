@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v5.0": {
-      "ThsPlugin.Plugin/0.2.12": {
+      "ThsPlugin.Plugin/0.2.13": {
         "dependencies": {
           "ThsPlugin.Abstractions": "1.0.0",
           "ThsPlugin.Adapters.Hevo": "1.0.0",
@@ -64,7 +64,7 @@
     }
   },
   "libraries": {
-    "ThsPlugin.Plugin/0.2.12": {
+    "ThsPlugin.Plugin/0.2.13": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

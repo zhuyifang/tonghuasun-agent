@@ -56,7 +56,10 @@ def _resolve_product_home(product_home: str | os.PathLike[str] | None) -> Path:
     if product_home is not None:
         return Path(product_home).expanduser().resolve()
 
-    overridden = os.environ.get("TONGHUASUN_CODEX_HOME", "").strip()
+    overridden = (
+        os.environ.get("TONGHUASUN_AGENT_HOME", "").strip()
+        or os.environ.get("TONGHUASUN_CODEX_HOME", "").strip()
+    )
     if overridden:
         return Path(os.path.expandvars(overridden)).expanduser().resolve()
 

@@ -1,0 +1,10 @@
+{
+  "apiVersion": "tonghuasun-agent/doubao/v1",
+  "id": "tonghuasun-agent",
+  "name": "同花顺 Agent",
+  "version": "0.2.13",
+  "description": "在豆包中查询当前电脑上的同花顺行情、Level2、账户、持仓、委托和成交数据。",
+  "author": "zhuyifang",
+  "homepage": "https://github.com/zhuyifang/tonghuasun-agent",
+  "license": "AGPL-3.0-only"
+}

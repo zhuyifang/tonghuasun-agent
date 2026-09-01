@@ -1,12 +1,12 @@
 {
   "name": "ths-mcp-server",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "description": "同花顺本机服务的配置器、MCP 传输桥和界面构建工具。",
   "license": "AGPL-3.0-only",
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "npm run build && node --test tests/widgetAsset.test.mjs tests/toolResultCompatibility.test.mjs tests/workbuddyAdapter.test.mjs tests/zcodeAdapter.test.mjs tests/openclawAdapter.test.mjs tests/legacyCommercialState.test.mjs tests/deploymentSafety.test.mjs tests/installerCli.test.mjs"
+    "test": "npm run build && node --test tests/widgetAsset.test.mjs tests/toolResultCompatibility.test.mjs tests/workbuddyAdapter.test.mjs tests/zcodeAdapter.test.mjs tests/openclawAdapter.test.mjs tests/doubaoAdapter.test.mjs tests/qianwenAdapter.test.mjs tests/sharedSkill.test.mjs tests/legacyCommercialState.test.mjs tests/deploymentSafety.test.mjs tests/installerCli.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.28.0",

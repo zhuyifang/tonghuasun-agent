@@ -1,6 +1,6 @@
 {
   "name": "tonghuasun-agent",
-  "version": "0.2.12",
+  "version": "0.2.13",
   "description": "连接本机同花顺，为 ZCode 提供证券资料、账户持仓、实时行情、盯盘界面和可选交易工具。",
   "author": {
     "name": "zhuyifang",
