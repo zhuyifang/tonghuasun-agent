@@ -1,0 +1,11 @@
+{
+  "apiVersion": "fqgate-agent/doubao/v1",
+  "id": "fqgate-agent",
+  "name": "同花顺免费开源AI插件FQGate",
+  "version": "0.3.0",
+  "description": "在豆包中通过本机 FQGate 查询行情、账户、持仓、委托和成交数据。",
+  "author": "zhuyifang",
+  "homepage": "https://github.com/zhuyifang/tonghuasun-agent",
+  "license": "AGPL-3.0-only",
+  "icon": "./assets/brand/fqgate-app-icon.svg"
+}

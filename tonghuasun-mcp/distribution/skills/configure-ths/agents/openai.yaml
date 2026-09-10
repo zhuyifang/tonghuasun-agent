@@ -1,4 +1,0 @@
-interface:
-  display_name: "配置同花顺"
-  short_description: "配置、修复、检查或卸载同花顺 Agent 本地数据插件"
-  default_prompt: "使用 $configure-ths 检查并配置我的同花顺 Agent 插件。"

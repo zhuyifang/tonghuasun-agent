@@ -1,0 +1,114 @@
+import assert from "node:assert/strict";
+
+import {
+  McpFqgateFetch,
+  resolveFqgateMcpToolName
+} from "../src/adapters/mcp-app/McpFqgateFetch.ts";
+import type {
+  JsonObject,
+  McpAppRuntime,
+  McpToolResult,
+  OriginatingToolSnapshot
+} from "../src/adapters/mcp-app/McpAppRuntime.ts";
+
+class FakeRuntime {
+  callCount = 0;
+  waitCount = 0;
+
+  constructor(
+    private readonly snapshot: OriginatingToolSnapshot,
+    private readonly originatingResult: McpToolResult,
+    private readonly repeatedResult: McpToolResult = originatingResult
+  ) {}
+
+  getOriginatingToolSnapshot(): OriginatingToolSnapshot {
+    return this.snapshot;
+  }
+
+  async waitForToolResult(): Promise<McpToolResult> {
+    this.waitCount += 1;
+    return this.originatingResult;
+  }
+
+  async callTool(_name: string, _argumentsValue: JsonObject): Promise<McpToolResult> {
+    this.callCount += 1;
+    return this.repeatedResult;
+  }
+}
+
+const loginEnvelope = {
+  code: 0,
+  message: "操作成功",
+  data: {
+    flow_id: 17,
+    qr_image_base64: "AA==",
+    qr_media_type: "image/png",
+    status: "waiting_for_scan"
+  }
+};
+const loginResult = {
+  content: [],
+  structuredContent: { ok: true, httpStatus: 200 },
+  _meta: {
+    "fqgate/uiResult": {
+      ok: true,
+      httpStatus: 200,
+      data: loginEnvelope
+    }
+  }
+} as McpToolResult;
+
+const runtime = new FakeRuntime({
+  name: "fqgate_market_qr_login_begin",
+  arguments: {},
+  result: undefined
+}, loginResult);
+const bridge = new McpFqgateFetch(runtime as unknown as McpAppRuntime);
+const request = () => bridge.fetch("http://127.0.0.1:17281/v1/market/session/qr/begin", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ cache_credentials: false })
+});
+
+const firstResponse = await request();
+assert.deepEqual(await firstResponse.json(), loginEnvelope);
+assert.equal(runtime.waitCount, 1, "首次匹配请求应等待并消费原始工具结果");
+assert.equal(runtime.callCount, 0, "消费原始工具结果时不应重复调用二维码工具");
+
+await request();
+assert.equal(runtime.callCount, 1, "原始结果只能消费一次，后续刷新应重新调用工具");
+
+const candleEnvelope = { code: 0, message: "操作成功", data: { records: [] } };
+const candleResult = {
+  content: [],
+  structuredContent: { ok: true, httpStatus: 200, data: candleEnvelope }
+} as McpToolResult;
+const candleRuntime = new FakeRuntime({
+  name: "fqgate_market_klines",
+  arguments: { market: "USHA", code: "600151", interval: "day", count: 160 },
+  result: candleResult
+}, candleResult);
+const candleBridge = new McpFqgateFetch(candleRuntime as unknown as McpAppRuntime);
+await candleBridge.fetch("http://127.0.0.1:17281/v1/market/history/klines", {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    "x-request-timeout-ms": "30000"
+  },
+  body: JSON.stringify({
+    market: "USHA",
+    code: "600151",
+    interval: "day",
+    count: 160,
+    adjust: ""
+  })
+});
+assert.equal(candleRuntime.waitCount, 0, "已有原始结果时不应再次等待");
+assert.equal(candleRuntime.callCount, 0, "K 线首屏应复用原始工具结果");
+assert.equal(
+  resolveFqgateMcpToolName("POST", "/v1/market/information/news"),
+  "fqgate_market_news",
+  "资讯接口应映射到 FQGate news 工具"
+);
+
+process.stdout.write("MCP 工具首屏结果复用验收通过。\n");

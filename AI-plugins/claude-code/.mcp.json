@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "fqgate": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/scripts/launch-fqgate-mcp.mjs"],
+      "cwd": "${CLAUDE_PLUGIN_ROOT}"
+    }
+  }
+}

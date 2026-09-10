@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "agentVersion": "0.3.0",
+  "fqgate": {
+    "minimumVersion": "0.1.0",
+    "maximumVersionExclusive": "0.2.0"
+  },
+  "mcp": {
+    "defaultUrl": "http://127.0.0.1:17281/mcp",
+    "supportedProtocolVersions": [
+      "2025-06-18",
+      "2025-03-26",
+      "2024-11-05"
+    ],
+    "stdioArguments": [
+      "--mcp-stdio",
+      "--mcp-url"
+    ]
+  },
+  "release": {
+    "status": "unpublished",
+    "packages": []
+  }
+}

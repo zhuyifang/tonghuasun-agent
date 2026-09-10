@@ -1,0 +1,22 @@
+{
+  "name": "fqgate-agent-deepseek-harness",
+  "displayName": "同花顺免费开源AI插件FQGate",
+  "version": "0.3.0",
+  "description": "同花顺免费开源AI插件FQGate的 DeepSeek Harness Cordis 入口。",
+  "license": "AGPL-3.0-only",
+  "type": "module",
+  "main": "./index.mjs",
+  "icon": "./assets/brand/fqgate-app-icon.svg",
+  "bin": {
+    "fqgate-agent": "./scripts/configure-fqgate.mjs"
+  },
+  "files": ["cordis.patch.yml", "index.mjs", "scripts/", "skills/", "docs/", "assets/", "*.md"],
+  "peerDependencies": {
+    "@deepseek-ai/dsh-mcp-client": "^0.1.0-rc.7"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "fqgate": {
+      "title": "FQGate",
+      "description": "连接当前电脑上运行中的 FQGate MCP 服务。",
+      "command": "node",
+      "args": ["./scripts/launch-fqgate-mcp.mjs"],
+      "cwd": ".",
+      "env_vars": ["LOCALAPPDATA", "HOME", "PATH", "FQGATE_EXECUTABLE", "FQGATE_MCP_URL"],
+      "startup_timeout_sec": 15,
+      "tool_timeout_sec": 120
+    }
+  }
+}

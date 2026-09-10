@@ -1,0 +1,17 @@
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+.mcp-app-entry-error {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 16px;
+  color: rgb(var(--danger-6, 245, 63, 63));
+  font-size: 14px;
+}

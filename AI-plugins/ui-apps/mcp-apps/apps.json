@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "component": "fqgate-mcp-apps",
+  "bundleVersion": "0.1.0",
+  "minimumFqgateVersion": "0.1.0",
+  "apps": [
+    {
+      "id": "login",
+      "resourceUri": "ui://fqgate/login.html",
+      "file": "login.html",
+      "title": "同花顺行情登录",
+      "description": "登录同花顺行情账户。",
+      "toolPaths": [
+        "/v1/market/session/qr/begin"
+      ]
+    },
+    {
+      "id": "candle",
+      "resourceUri": "ui://fqgate/candle.html",
+      "file": "candle.html",
+      "title": "个股 K 线行情",
+      "description": "展示证券 K 线、均线、成交量及当前行情摘要。",
+      "toolPaths": [
+        "/v1/market/history/klines"
+      ]
+    },
+    {
+      "id": "information",
+      "resourceUri": "ui://fqgate/information.html",
+      "file": "information.html",
+      "title": "个股资讯",
+      "description": "展示指定证券的资讯列表、分类和阅读入口。",
+      "toolPaths": [
+        "/v1/market/information/news"
+      ]
+    },
+    {
+      "id": "market-quotes",
+      "resourceUri": "ui://fqgate/market-quotes.html",
+      "file": "market-quotes.html",
+      "title": "实时行情面板",
+      "description": "展示一组证券的实时行情与连接状态。",
+      "toolPaths": [
+        "/v1/market/realtime/cn"
+      ]
+    },
+    {
+      "id": "order-flow",
+      "resourceUri": "ui://fqgate/order-flow.html",
+      "file": "order-flow.html",
+      "title": "L2 - 逐笔委托",
+      "description": "展示 Level-2 逐笔委托与撤单数据。",
+      "toolPaths": [
+        "/v1/market/level2/orders"
+      ]
+    }
+  ]
+}

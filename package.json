@@ -1,0 +1,12 @@
+{
+  "name": "fqgate-agent-workspace",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:mcp-apps": "npm --prefix AI-plugins/ui-apps run build:mcp-apps",
+    "dev:publish": "npm --prefix AI-plugins/ui-apps run dev:publish",
+    "release:mcp-apps": "npm --prefix AI-plugins/ui-apps run release:mcp-apps --",
+    "test": "node --test installer/tests/fqgate-config.test.mjs tests/plugin-integration.test.mjs"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "apiVersion": "qwen-agent/plugin/v1",
+  "id": "fqgate-agent",
+  "name": "同花顺免费开源AI插件FQGate",
+  "version": "0.3.0",
+  "description": "在千问中通过本机 FQGate 查询行情、账户、持仓、委托和成交数据。",
+  "author": "zhuyifang",
+  "homepage": "https://github.com/zhuyifang/tonghuasun-agent",
+  "license": "AGPL-3.0-only",
+  "icon": "./assets/brand/fqgate-app-icon.svg",
+  "mcpServers": {
+    "fqgate": {
+      "command": "node",
+      "args": ["${QWEN_PLUGIN_ROOT}/scripts/launch-fqgate-mcp.mjs"],
+      "env": {
+        "FQGATE_MCP_TEXT_COMPATIBILITY": "true"
+      }
+    }
+  },
+  "skills": [
+    { "name": "configure-fqgate", "path": "./skills/configure-fqgate" },
+    { "name": "market-data", "path": "./skills/market-data" },
+    { "name": "account-query", "path": "./skills/account-query" },
+    { "name": "trade-execution", "path": "./skills/trade-execution" }
+  ]
+}

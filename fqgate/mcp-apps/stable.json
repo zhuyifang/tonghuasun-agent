@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "component": "fqgate-mcp-apps",
+  "channel": "stable",
+  "bundleVersion": "0.1.0",
+  "manifest": "releases/0.1.0/manifest.json"
+}

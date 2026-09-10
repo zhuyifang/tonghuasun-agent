@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "fqgate": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${ZCODE_PLUGIN_ROOT}/scripts/launch-fqgate-mcp.mjs"],
+      "cwd": "${ZCODE_PLUGIN_ROOT}",
+      "enabled": true,
+      "timeoutMs": 120000
+    }
+  }
+}

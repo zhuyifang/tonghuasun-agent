@@ -1,0 +1,13 @@
+fqgate-agent
+Copyright (c) 2026 zhuyifang and contributors
+
+本仓库公开源码依据 GNU Affero General Public License v3.0 only（AGPL-3.0-only）提供。
+
+依据 AGPL-3.0 第 7(b) 条及 `ADDITIONAL_TERMS.md`，分发、部署或修改本项目时必须保留以下合理署名：
+
+  基于 fqgate-agent 开发
+  https://github.com/zhuyifang/tonghuasun-agent
+
+FQGate 编译包、第三方组件及个人图片不因与公开插件一同分发而自动获得 AGPL 授权，分别适用其权利人许可和随附声明。
+
+“同花顺”及相关标识归其权利人所有。本项目并非同花顺官方产品，也不代表其权利人的认可或背书。

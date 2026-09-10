@@ -2,10 +2,9 @@
 /artifacts/
 /.tmp/
 
-# Node.js / TypeScript 生成物
+# Node.js 生成物
 **/node_modules/
 **/dist/
-*.tsbuildinfo
 
 # .NET 生成物
 **/bin/
@@ -13,10 +12,10 @@
 
 # 本机 MCP 与宿主配置
 **/.mcp.json
-!/codex/.mcp.json
-!/claude-code/.mcp.json
-!/workbuddy/.mcp.json
-!/zcode/.mcp.json
+!/AI-plugins/codex/.mcp.json
+!/AI-plugins/claude-code/.mcp.json
+!/AI-plugins/workbuddy/.mcp.json
+!/AI-plugins/zcode/.mcp.json
 **/.env
 **/.env.local
 **/.secrets/
@@ -28,6 +27,3 @@
 .vscode/
 .DS_Store
 Thumbs.db
-
-# 本机能力验证输出
-/tonghuasun-mcp/host/docs/capability-validation/

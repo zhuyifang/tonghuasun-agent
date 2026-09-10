@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "component": "fqgate-mcp-apps",
+  "channel": "stable",
+  "bundleVersion": "0.1.0",
+  "minimumFqgateVersion": "0.1.0",
+  "apps": [
+    {
+      "id": "login",
+      "resourceUri": "ui://fqgate/login.html",
+      "file": "login.html",
+      "title": "同花顺行情登录",
+      "description": "登录同花顺行情账户。",
+      "toolPaths": [
+        "/v1/market/session/qr/begin"
+      ],
+      "size": 680524,
+      "sha256": "ffa8250b46675d8f7584bf12b82ad4e57d7d002aa0aef4f78e7c0d0a3f91670c"
+    },
+    {
+      "id": "candle",
+      "resourceUri": "ui://fqgate/candle.html",
+      "file": "candle.html",
+      "title": "个股 K 线行情",
+      "description": "展示证券 K 线、均线、成交量及当前行情摘要。",
+      "toolPaths": [
+        "/v1/market/history/klines"
+      ],
+      "size": 868712,
+      "sha256": "3aa0bfcc47e2fcc5460b19c336ae00aebd9764e2bbf1440b5bc4ca9f873f1a67"
+    },
+    {
+      "id": "information",
+      "resourceUri": "ui://fqgate/information.html",
+      "file": "information.html",
+      "title": "个股资讯",
+      "description": "展示指定证券的资讯列表、分类和阅读入口。",
+      "toolPaths": [
+        "/v1/market/information/news"
+      ],
+      "size": 631712,
+      "sha256": "f70bb819e2c1d04898e55739e5ca64c9c0b4bb1cff72d23c23140c2cb75af55c"
+    },
+    {
+      "id": "market-quotes",
+      "resourceUri": "ui://fqgate/market-quotes.html",
+      "file": "market-quotes.html",
+      "title": "实时行情面板",
+      "description": "展示一组证券的实时行情与连接状态。",
+      "toolPaths": [
+        "/v1/market/realtime/cn"
+      ],
+      "size": 680719,
+      "sha256": "c51a80d8903a018870531127917c6591beb5e792cd20f4aebbe8c527fd473c93"
+    },
+    {
+      "id": "order-flow",
+      "resourceUri": "ui://fqgate/order-flow.html",
+      "file": "order-flow.html",
+      "title": "L2 - 逐笔委托",
+      "description": "展示 Level-2 逐笔委托与撤单数据。",
+      "toolPaths": [
+        "/v1/market/level2/orders"
+      ],
+      "size": 900809,
+      "sha256": "8b699dd9cfee5700f035405fb403c2ee3e44c23cf4f9bd9d7f7d020c14ec94d1"
+    }
+  ]
+}
