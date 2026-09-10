@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
 构建 MCP Apps，并发布到 FQGate 开发运行目录。
 

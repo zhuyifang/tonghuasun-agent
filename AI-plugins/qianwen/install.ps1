@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [switch]$Uninstall
 )
@@ -185,6 +185,7 @@ $runtimeFiles = @("fqgate-config.mjs", "configure-fqgate.mjs", "launch-fqgate-mc
 $sourceSkillsRoot = Join-Path $PSScriptRoot "skills"
 $sourceScriptsRoot = Join-Path $PSScriptRoot "scripts"
 $sourceManifestPath = Join-Path $PSScriptRoot "plugin.json"
+$sourceCompatibilityPath = Join-Path $PSScriptRoot "metadata\fqgate-compatibility.json"
 foreach ($fileName in $runtimeFiles) {
     $requiredPath = Join-Path $sourceScriptsRoot $fileName
     if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) { throw "安装包不完整，缺少：$requiredPath" }
@@ -192,6 +193,9 @@ foreach ($fileName in $runtimeFiles) {
 foreach ($skillName in $skillNames) {
     $requiredPath = Join-Path $sourceSkillsRoot "$skillName\SKILL.md"
     if (-not (Test-Path -LiteralPath $requiredPath -PathType Leaf)) { throw "安装包不完整，缺少：$requiredPath" }
+}
+if (-not (Test-Path -LiteralPath $sourceCompatibilityPath -PathType Leaf)) {
+    throw "安装包不完整，缺少：$sourceCompatibilityPath"
 }
 
 $qianwenNodePath = Join-Path $qianwenAgentRoot "resources\bins\node.exe"
@@ -204,6 +208,7 @@ foreach ($fileName in $runtimeFiles) {
     $adapterChanged = (Copy-FileIfChanged (Join-Path $sourceScriptsRoot $fileName) (Join-Path $adapterInstallRoot "scripts\$fileName")) -or $adapterChanged
 }
 $adapterChanged = (Copy-FileIfChanged $sourceManifestPath (Join-Path $adapterInstallRoot "plugin.json")) -or $adapterChanged
+$adapterChanged = (Copy-FileIfChanged $sourceCompatibilityPath (Join-Path $adapterInstallRoot "metadata\fqgate-compatibility.json")) -or $adapterChanged
 $configurationChanged = $false
 
 foreach ($accountRoot in $accountRoots) {

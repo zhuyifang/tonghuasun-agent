@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [switch]$Release
 )
@@ -13,10 +13,6 @@ $agentVersion = [string]$compatibility.agentVersion
 if ($agentVersion -notmatch "^\d+\.\d+\.\d+$") {
     throw "Agent 版本必须是严格语义版本：$agentVersion"
 }
-if ($Release -and [string]$compatibility.release.status -ne "published") {
-    throw "FQGate 发行清单尚未发布，不能生成正式发布包。"
-}
-
 $adapterDefinitions = @(
     [ordered]@{ Name="codex"; Manifest=".codex-plugin\plugin.json"; Archive="fqgate-agent-codex-$agentVersion.zip" },
     [ordered]@{ Name="claude-code"; Manifest=".claude-plugin\plugin.json"; Archive="fqgate-agent-claude-code-$agentVersion.zip" },
@@ -108,12 +104,28 @@ try {
     }
     finally { Pop-Location }
 
+    $artifactHashes = @()
     foreach ($artifact in $artifacts) {
+        $hash = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
+        $artifactHashes += [pscustomobject]@{
+            Path = $artifact
+            FileName = [IO.Path]::GetFileName($artifact)
+            Hash = $hash
+        }
         Write-Output "artifact_path=$artifact"
-        Write-Output "artifact_sha256=$((Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash.ToLowerInvariant())"
+        Write-Output "artifact_sha256=$hash"
+    }
+    if ($Release) {
+        $checksumPath = Join-Path $artifactDirectory "fqgate-agent-$agentVersion-SHA256SUMS.txt"
+        $checksumLines = $artifactHashes |
+            Sort-Object FileName |
+            ForEach-Object { "$($_.Hash)  $($_.FileName)" }
+        [IO.File]::WriteAllLines($checksumPath, $checksumLines, [Text.UTF8Encoding]::new($false))
+        Write-Output "checksum_path=$checksumPath"
     }
     Write-Output "agent_version=$agentVersion"
     Write-Output "fqgate_range=$($compatibility.fqgate.minimumVersion)..<$($compatibility.fqgate.maximumVersionExclusive)"
+    Write-Output "build_mode=$(if ($Release) { 'release' } else { 'development' })"
     Write-Output "build_complete=true"
 }
 finally {

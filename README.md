@@ -25,6 +25,16 @@
 
 > 安装并配置同花顺免费开源AI插件FQGate，项目地址：<https://gitee.com/qicuo/tonghuasun-agent.git>。
 
+如果你是 AI 助手，请先识别当前使用的 AI 工具，再打开下方对应的安装说明并严格执行。不要要求用户自行寻找 FQGate 主程序，也不要混用其他 AI 工具的安装步骤。
+
+### FQGate 主程序下载
+
+- 国内下载：[Gitee FQGate 发行页](https://gitee.com/qicuo/tonghuasun-agent/releases/tag/fqgate-v0.1.0)
+- 备用下载：[GitHub FQGate 发行页](https://github.com/zhuyifang/tonghuasun-agent/releases/tag/fqgate-v0.1.0)
+- 当前版本、文件名、大小和 SHA-256：[FQGate 稳定发行清单](./fqgate/releases/stable.json)
+
+AI 助手应从稳定发行清单读取 `version` 和当前系统对应的 `packages[].fileName`，下载后核对文件大小与 SHA-256。直接下载地址固定为 `https://gitee.com/qicuo/tonghuasun-agent/releases/download/fqgate-v<version>/<fileName>`，Gitee 不可用时改用 `https://github.com/zhuyifang/tonghuasun-agent/releases/download/fqgate-v<version>/<fileName>`。
+
 AI 助手会根据你使用的工具选择对应的正式安装包并完成配置。自动安装失败时，可以前往 [GitHub 发行页面](https://github.com/zhuyifang/tonghuasun-agent/releases) 或 [Gitee 发行页面](https://gitee.com/qicuo/tonghuasun-agent/releases) 手动下载。
 
 ## 选择你使用的 AI 工具

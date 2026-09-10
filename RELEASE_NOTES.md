@@ -1,19 +1,15 @@
-# V2 开发中（0.3.0）
+# 0.3.0 更新说明
 
-本版本将公开 AI 插件改为直接对接 FQGate 原生 MCP，并把各客户端入口统一迁移到 `AI-plugins/`。FQGate `0.1.x` 负责 MCP 工具、协议和传输，本仓库只保留配置、启动、技能、适配器与公开 SDK。
+本版本将公开 AI 插件改为直接对接 FQGate MCP，并统一整理不同 AI 工具的安装入口。插件与 FQGate 独立发布、独立管理版本，通过兼容范围共同工作。
 
-## 当前完成
+## 本次更新
 
 - 接入 Codex、Claude Code、WorkBuddy、ZCode、OpenClaw、DeepSeek Harness、豆包和千问。
-- 增加共享 FQGate 发现与配置，STDIO 客户端统一调用 FQGate 的 `--mcp-stdio`。
+- Codex 直接连接本机 FQGate；需要标准输入输出连接的其他客户端统一复用 FQGate 提供的入口。
 - 按配置、行情、账户和交易职责拆分公共技能。
 - 移除旧版 JavaScript MCP 代理和原生 DLL 分发载荷。
-- 增加 FQGate/Agent 独立版本兼容清单及正式构建发布闸门。
+- 增加 FQGate 与 Agent 插件的独立版本兼容清单和正式构建流程。
 - 重构 Python SDK，使其只依赖 FQGate 公开 HTTP 与 WebSocket 接口。
-
-## 发布状态
-
-FQGate 的正式下载地址、平台包和 SHA-256 尚未登记，因此 `0.3.0` 当前仅用于开发验证，不是已发布版本。根目录 Claude 市场和 `update/stable.json` 继续保留已发布的 `0.2.13`，待完整发行清单确认后再原子更新。
 
 # 0.2.13 更新说明
 

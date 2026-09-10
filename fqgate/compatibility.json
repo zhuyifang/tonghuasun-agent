@@ -16,9 +16,5 @@
       "--mcp-stdio",
       "--mcp-url"
     ]
-  },
-  "release": {
-    "status": "unpublished",
-    "packages": []
   }
 }

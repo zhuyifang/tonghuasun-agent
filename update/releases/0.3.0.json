@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "component": "fqgate-agent",
+  "version": "0.3.0",
+  "publishedAtUtc": "2026-09-10T08:28:00Z",
+  "releaseUrls": {
+    "gitee": "https://gitee.com/qicuo/tonghuasun-agent/releases/tag/v0.3.0",
+    "github": "https://github.com/zhuyifang/tonghuasun-agent/releases/tag/v0.3.0"
+  },
+  "packages": [
+    {
+      "adapter": "claude-code",
+      "fileName": "fqgate-agent-claude-code-0.3.0.zip",
+      "size": 78750,
+      "sha256": "c630911c8b83c1927dd331159db0e564584cbc3d3c4dcaf60168df22d2265160"
+    },
+    {
+      "adapter": "codex",
+      "fileName": "fqgate-agent-codex-0.3.0.zip",
+      "size": 79517,
+      "sha256": "c289c9fcbb9389fdc468c0f295c30c121f85a6f237c90848297ff6e0db4c0970"
+    },
+    {
+      "adapter": "deepseek-harness",
+      "fileName": "fqgate-agent-deepseek-harness-0.3.0.tgz",
+      "size": 68010,
+      "sha256": "5f2f5c221a5150ff4339243687d69a92e6b8e43f153eb24f2f88230f892e3a83"
+    },
+    {
+      "adapter": "doubao",
+      "fileName": "fqgate-agent-doubao-0.3.0.zip",
+      "size": 82186,
+      "sha256": "009e207487d44b44eebe4b6c8cada9810898d14053cd3fcc74f8f3361e5c8259"
+    },
+    {
+      "adapter": "openclaw",
+      "fileName": "fqgate-agent-openclaw-0.3.0.zip",
+      "size": 78668,
+      "sha256": "dbf83b1edf1cff688e6fcebd63c189e01698ea9a4d38a4eee7f90459bc095370"
+    },
+    {
+      "adapter": "qianwen",
+      "fileName": "fqgate-agent-qianwen-0.3.0.zip",
+      "size": 83200,
+      "sha256": "1e111b6ce0133bc7687a0184da1944cc05449e3f499571e7b68a94bd86f70fdd"
+    },
+    {
+      "adapter": "workbuddy",
+      "fileName": "fqgate-agent-workbuddy-0.3.0.zip",
+      "size": 79099,
+      "sha256": "d461235874e3789926e9d351779aaec72868d565cbf070fd97f412eb474b1dae"
+    },
+    {
+      "adapter": "zcode",
+      "fileName": "fqgate-agent-zcode-0.3.0.zip",
+      "size": 78838,
+      "sha256": "e9e592f7c672ecd6a0acdd85bbf96a44c92d753a71660ff791785ec88a4c1c36"
+    },
+    {
+      "adapter": "zcode-marketplace",
+      "fileName": "fqgate-agent-zcode-marketplace-0.3.0.zip",
+      "size": 99561,
+      "sha256": "a57f26adc88283c7885a304d28d719e399315cab5ba4318b031dfe31b5a116eb"
+    }
+  ]
+}

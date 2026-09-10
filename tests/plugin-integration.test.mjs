@@ -43,9 +43,35 @@ test("八个适配器与兼容清单使用同一 Agent 版本", () => {
   }
 });
 
-test("STDIO 适配器统一调用 FQGate 原生启动器", () => {
+test("面向 Windows 用户的 PowerShell 脚本使用 UTF-8 BOM", () => {
+  const scripts = [
+    ["Build-Distribution.ps1"],
+    ["scripts", "Build-AgentPlugins.ps1"],
+    ["scripts", "Sync-FqgateUiApps.ps1"],
+    ["scripts", "release", "Common.ps1"],
+    ["AI-plugins", "doubao", "setup.ps1"],
+    ["AI-plugins", "doubao", "install.ps1"],
+    ["AI-plugins", "qianwen", "setup.ps1"],
+    ["AI-plugins", "qianwen", "install.ps1"]
+  ];
+
+  for (const segments of scripts) {
+    const bytes = readFileSync(pathInRepository(...segments));
+    assert.deepEqual(
+      [...bytes.subarray(0, 3)],
+      [0xef, 0xbb, 0xbf],
+      `${segments.join("/")} 缺少 UTF-8 BOM，Windows PowerShell 5.1 可能无法解析中文`
+    );
+  }
+});
+
+test("Codex 直接连接本机 FQGate，STDIO 适配器统一调用原生启动器", () => {
+  const codexConfig = readJson("AI-plugins", "codex", ".mcp.json");
+  assert.equal(codexConfig.mcpServers.fqgate.type, "http");
+  assert.equal(codexConfig.mcpServers.fqgate.url, compatibility.mcp.defaultUrl);
+  assert.equal(Object.hasOwn(codexConfig.mcpServers.fqgate, "cwd"), false);
+
   const configPaths = [
-    ["codex", ".mcp.json"],
     ["claude-code", ".mcp.json"],
     ["workbuddy", ".mcp.json"],
     ["zcode", ".mcp.json"],
@@ -143,6 +169,54 @@ test("README 和插件清单保留原名称并覆盖核心检索词", () => {
   }
 });
 
+test("八个宿主安装说明都给出 FQGate 主程序发行路径", () => {
+  for (const [adapter] of manifests) {
+    const readme = readText("AI-plugins", adapter, "README.md");
+    assert.match(readme, /releases\/tag\/fqgate-v0\.1\.0/, `${adapter} 缺少 FQGate 主程序发行页`);
+    assert.match(readme, /fqgate\/releases\/stable\.json/, `${adapter} 缺少 FQGate 稳定发行清单`);
+    assert.match(readme, /releases\/download\/fqgate-v<version>\/<fileName>/, `${adapter} 缺少 FQGate 主包直链`);
+    assert.match(readme, /SHA-256/, `${adapter} 缺少主程序校验要求`);
+    assert.match(readme, /不要让用户自行寻找或猜测下载地址/, `${adapter} 缺少 AI 下载规则`);
+  }
+
+  const rootReadme = readText("README.md");
+  assert.match(rootReadme, /FQGate 主程序下载/);
+  assert.match(rootReadme, /releases\/download\/fqgate-v<version>\/<fileName>/);
+});
+
+test("八个宿主安装说明都要求先卸载旧版插件", () => {
+  for (const [adapter] of manifests) {
+    const readme = readText("AI-plugins", adapter, "README.md");
+    assert.match(readme, /卸载旧版 `tonghuasun-agent`/, `${adapter} 缺少旧版卸载流程`);
+    assert.match(readme, /不要同时/, `${adapter} 缺少新旧版本冲突提示`);
+    assert.match(readme, /不会删除 FQGate 主程序或共享配置/, `${adapter} 缺少数据保留说明`);
+  }
+
+  assert.match(
+    readText("AI-plugins", "claude-code", "README.md"),
+    /\/plugin uninstall tonghuasun-agent@tonghuasun-agent/
+  );
+  assert.match(
+    readText("AI-plugins", "openclaw", "README.md"),
+    /openclaw plugins uninstall tonghuasun-agent --dry-run/
+  );
+  assert.match(
+    readText("AI-plugins", "deepseek-harness", "README.md"),
+    /dsh plugin --profile web remove tonghuasun-agent-deepseek-harness/
+  );
+  for (const adapter of ["doubao", "qianwen"]) {
+    assert.match(readText("AI-plugins", adapter, "README.md"), /setup\.ps1 -Uninstall/);
+  }
+
+  const rootReadme = readText("README.md");
+  assert.doesNotMatch(rootReadme, /卸载旧版 `tonghuasun-agent`/);
+  assert.doesNotMatch(rootReadme, /旧版用户请先卸载/);
+
+  const configureSkill = readText("skills", "configure-fqgate", "SKILL.md");
+  assert.match(configureSkill, /安装 `fqgate-agent` 前先检查/);
+  assert.match(configureSkill, /不删除 FQGate 主程序、共享配置和用户数据/);
+});
+
 test("V2 不重新引入旧 MCP 代理和私有原生载荷", () => {
   assert.equal(
     existsSync(pathInRepository("tonghuasun-mcp", "distribution", "scripts", "tonghuasun-mcp-proxy.mjs")),
@@ -173,12 +247,46 @@ test("MCP Apps 构建产物只交给 FQGate，不复制进 Codex 插件", () => 
   assert.doesNotMatch(commonPackage, /assets\\mcp-apps/i);
 });
 
-test("未发布 V2 不覆盖现有稳定渠道", () => {
-  assert.equal(compatibility.release.status, "unpublished");
-  assert.deepEqual(compatibility.release.packages, []);
+test("正式发布清单、稳定通道和 Claude 市场保持一致", () => {
+  assert.equal(Object.hasOwn(compatibility, "release"), false);
+  const release = readJson("update", "releases", `${agentVersion}.json`);
+  assert.equal(release.component, "fqgate-agent");
+  assert.equal(release.version, agentVersion);
+  assert.equal(release.packages.length, 9);
+  for (const releasePackage of release.packages) {
+    assert.match(releasePackage.fileName, /0\.3\.0\.(zip|tgz)$/);
+    assert.ok(Number.isInteger(releasePackage.size) && releasePackage.size > 0);
+    assert.match(releasePackage.sha256, /^[a-f0-9]{64}$/);
+  }
 
   const stable = readJson("update", "stable.json");
   const claudeMarketplace = readJson(".claude-plugin", "marketplace.json");
+  assert.equal(stable.latestVersion, agentVersion);
   assert.equal(claudeMarketplace.plugins[0].version, stable.latestVersion);
-  assert.notEqual(stable.latestVersion, agentVersion);
+  assert.equal(claudeMarketplace.plugins[0].name, "fqgate-agent");
+  assert.match(claudeMarketplace.plugins[0].source.url, /fqgate-agent-claude-code-0\.3\.0\.zip$/);
+  assert.equal(
+    claudeMarketplace.plugins[0].source.sha256,
+    release.packages.find((item) => item.adapter === "claude-code").sha256
+  );
+
+  const claudeReadme = readText("AI-plugins", "claude-code", "README.md");
+  assert.doesNotMatch(claudeReadme, /0\.3\.0` 尚未发布|仍指向已发布的旧版/);
+  assert.match(claudeReadme, /\/plugin marketplace add zhuyifang\/tonghuasun-agent/);
+  assert.match(claudeReadme, /\/plugin install fqgate-agent@tonghuasun-agent/);
+});
+
+test("Agent 正式构建不依赖 FQGate 的发布状态", () => {
+  const buildScript = readText("scripts", "Build-AgentPlugins.ps1");
+  assert.doesNotMatch(buildScript, /compatibility\.release\.status/);
+  assert.doesNotMatch(buildScript, /FQGate 发行清单尚未发布/);
+  assert.match(buildScript, /build_mode=/);
+  assert.match(buildScript, /SHA256SUMS\.txt/);
+});
+
+test("千问安装器复制运行时所需的兼容清单", () => {
+  const installer = readText("AI-plugins", "qianwen", "install.ps1");
+  assert.match(installer, /metadata\\fqgate-compatibility\.json/);
+  assert.match(installer, /sourceCompatibilityPath/);
+  assert.match(installer, /Copy-FileIfChanged \$sourceCompatibilityPath/);
 });

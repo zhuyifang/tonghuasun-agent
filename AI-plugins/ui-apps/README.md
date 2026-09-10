@@ -78,7 +78,7 @@ npm run release:mcp-apps -- --signing-key-file D:\安全目录\mcp-apps-private.
 
 ## 维护约定
 
-`src/components/` 是唯一界面源码。任何 AI 工具适配层都只能处理通信、宿主能力和入口挂载，不能复制组件模板或另建专用布局。组件布局发生变化后，重新执行 `npm run build:mcp-apps` 即可更新全部入口。
+`src/components/` 是唯一界面源码。任何 AI 工具适配层都只能处理通信、AI 工具能力和入口挂载，不能复制组件模板或另建专用布局。组件布局发生变化后，重新执行 `npm run build:mcp-apps` 即可更新全部入口。
 
 执行以下命令可检查首屏工具结果不会重复请求，并验证五个资源均为完整的自包含文件：
 

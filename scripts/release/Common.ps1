@@ -1,4 +1,4 @@
-function Read-JsonFile([string]$Path) {
+﻿function Read-JsonFile([string]$Path) {
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
         throw "缺少 JSON 文件：$Path"
     }
