@@ -5,7 +5,12 @@ import type {
   QrLoginSession,
   SmsLoginSession
 } from "@/shared/contracts";
-import { FqgateHttpClient, type FqgateHttpClientOptions } from "./FqgateHttpClient";
+import { QrLoginFlowExpiredError, SmsCaptchaRejectedError } from "@/shared/loginErrors";
+import {
+  FqgateApiError,
+  FqgateHttpClient,
+  type FqgateHttpClientOptions
+} from "./FqgateHttpClient";
 
 interface FqgateLoginResult {
   connected: boolean;
@@ -74,10 +79,20 @@ export class FqgateLoginService implements LoginService {
   }
 
   async pollQrLogin(flowId: number): Promise<QrLoginProgress> {
-    const result = await this.client.post<FqgateQrPending | FqgateLoginResult>(
-      "/v1/market/session/qr/poll",
-      { flow_id: flowId }
-    );
+    let result: FqgateQrPending | FqgateLoginResult;
+    try {
+      result = await this.client.post<FqgateQrPending | FqgateLoginResult>(
+        "/v1/market/session/qr/poll",
+        { flow_id: flowId }
+      );
+    } catch (error) {
+      // 1003/3014 在二维码轮询接口中表示流程已经结束或被新的二维码替换，
+      // 不是用户输入错误，转换为登录领域状态后交给界面明确提示。
+      if (error instanceof FqgateApiError && (error.code === 1003 || error.code === 3014)) {
+        throw new QrLoginFlowExpiredError();
+      }
+      throw error;
+    }
     if ("connected" in result) return toLoginResult(result);
     return { connected: false, flowId: result.flow_id, status: result.status };
   }
@@ -103,12 +118,22 @@ export class FqgateLoginService implements LoginService {
     };
   }
 
-  async sendSmsCode(flowId: number, relativeX: number, relativeY: number): Promise<void> {
-    const result = await this.client.post<FqgateSendCodeResult>("/v1/market/session/sms/send-code", {
-      flow_id: flowId,
-      relative_x: relativeX,
-      relative_y: relativeY
-    });
+  async sendSmsCode(flowId: number, imageX: number, imageY: number): Promise<void> {
+    let result: FqgateSendCodeResult;
+    try {
+      result = await this.client.post<FqgateSendCodeResult>("/v1/market/session/sms/send-code", {
+        flow_id: flowId,
+        // FQGate 为兼容既有协议保留 relative_x/relative_y 字段名；
+        // 字段值实际是拼图相对底图左上角的最终坐标，不是拖动增量。
+        relative_x: imageX,
+        relative_y: imageY
+      });
+    } catch (error) {
+      if (error instanceof FqgateApiError && error.code === 3010) {
+        throw new SmsCaptchaRejectedError();
+      }
+      throw error;
+    }
     if (!result.code_sent) throw new Error("短信验证码发送失败，请重新完成滑块验证。");
   }
 

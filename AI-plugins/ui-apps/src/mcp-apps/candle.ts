@@ -20,7 +20,7 @@ const KLINE_INTERVALS = new Set<KlineInterval>([
 ]);
 
 async function main(): Promise<void> {
-  const runtime = await connectMcpApp("fqgate-candle");
+  const runtime = await connectMcpApp("fqgate-candle", "fqgate_market_klines");
   const argumentsValue = await runtime.waitForToolInput();
   const security = readSecurity(argumentsValue);
   if (!security) throw new Error("没有收到个股行情所需的证券代码。");

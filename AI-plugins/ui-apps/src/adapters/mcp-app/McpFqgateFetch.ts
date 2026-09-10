@@ -1,4 +1,3 @@
-import { DataServiceUnavailableError } from "@/shared/dataService";
 import type { JsonObject, McpToolResult, OriginatingToolSnapshot } from "./McpAppRuntime";
 import { McpAppRuntime } from "./McpAppRuntime";
 
@@ -36,6 +35,14 @@ interface InitialResultCache {
   result?: McpToolResult;
 }
 
+/** AI 工具与插件界面之间的通信失败，不代表 FQGate 数据服务不可用。 */
+export class McpAppCommunicationError extends Error {
+  constructor(message: string, readonly originalError?: unknown) {
+    super(message);
+    this.name = "McpAppCommunicationError";
+  }
+}
+
 /**
  * 把现有 FQGate HTTP Service 的 fetch 调用转换为标准 MCP Apps 工具调用。
  * 这样数据解析和 Vue 组件都继续只有一份，不为 Codex 复制业务实现。
@@ -67,7 +74,7 @@ export class McpFqgateFetch {
       return errorResponse(501, 1004, `MCP App 尚未适配接口：${request.method} ${new URL(request.url).pathname}`);
     }
 
-    const argumentsValue = await requestArguments(request);
+    const argumentsValue = toToolArguments(await requestArguments(request));
     try {
       const initialResult = await this.takeInitialResult(toolName, argumentsValue, request.signal);
       const result = initialResult
@@ -75,10 +82,11 @@ export class McpFqgateFetch {
       return toolResultResponse(result);
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") throw error;
-      throw new DataServiceUnavailableError(
+      throw new McpAppCommunicationError(
         error instanceof Error && error.message
-          ? `通过 AI 工具连接 FQGate 失败：${error.message}`
-          : "通过 AI 工具连接 FQGate 失败。"
+          ? `AI 工具未能完成本次操作：${error.message}`
+          : "AI 工具未能完成本次操作。",
+        error
       );
     }
   }
@@ -90,7 +98,10 @@ export class McpFqgateFetch {
   ): Promise<McpToolResult | undefined> {
     const cached = this.initialResult;
     if (!cached || cached.toolName !== toolName) return undefined;
-    if (stableJson(normalizeArguments(cached.argumentsValue)) !== stableJson(normalizeArguments(argumentsValue))) {
+    if (
+      stableJson(normalizeInitialArguments(cached.argumentsValue))
+      !== stableJson(normalizeInitialArguments(argumentsValue))
+    ) {
       return undefined;
     }
     this.initialResult = undefined;
@@ -155,13 +166,20 @@ function validHttpStatus(value: number): boolean {
   return Number.isInteger(value) && value >= 200 && value <= 599;
 }
 
-function normalizeArguments(value: JsonObject): JsonObject {
+/** 移除仅供本机 HTTP 接口使用、没有出现在 MCP 工具定义中的参数。 */
+function toToolArguments(value: JsonObject): JsonObject {
   return Object.fromEntries(
     Object.entries(value).filter(([key, item]) => (
-      key !== "requestTimeoutMs"
-      && !(key === "cache_credentials" && item === false)
+      key !== "cache_credentials"
       && !(key === "adjust" && item === "")
     ))
+  );
+}
+
+/** 首屏工具调用由 AI 工具发起，比较时忽略随后由界面补充的客户端超时。 */
+function normalizeInitialArguments(value: JsonObject): JsonObject {
+  return Object.fromEntries(
+    Object.entries(toToolArguments(value)).filter(([key]) => key !== "requestTimeoutMs")
   );
 }
 

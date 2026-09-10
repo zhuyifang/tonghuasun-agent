@@ -2,8 +2,8 @@
 import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 
 import ComponentFrame from "@/components/shared/ComponentFrame.vue";
-import { useDataServiceReconnect } from "@/composables/useDataServiceReconnect";
 import type { LoginService, QrLoginStatus, SmsCaptcha } from "@/shared/contracts";
+import { isQrLoginFlowExpiredError, isSmsCaptchaRejectedError } from "@/shared/loginErrors";
 
 const props = withDefaults(defineProps<{
   service: LoginService;
@@ -35,28 +35,16 @@ const phoneNumber = ref("");
 const verificationCode = ref("");
 const smsFlowId = ref<number>();
 const captcha = ref<SmsCaptcha>();
-const sliderOffset = ref(0);
+const sliderPositionX = ref(0);
 const sliderPieceSize = ref({ width: 0, height: 0 });
 const smsNotice = ref("");
 const smsNoticeType = ref<NoticeType>("info");
-
-const {
-  reconnecting,
-  connectionLoading,
-  handleServiceError,
-  stop: stopReconnectPolling
-} = useDataServiceReconnect({
-  service: props.service,
-  onRecovered: async () => {
-    if (activeTab.value === "qr") await beginQrLogin();
-  }
-});
 
 const sliderMax = computed(() => {
   if (!captcha.value) return 0;
   return Math.max(
     0,
-    captcha.value.imageWidth - captcha.value.initialX - sliderPieceSize.value.width
+    captcha.value.imageWidth - sliderPieceSize.value.width
   );
 });
 const captchaStageStyle = computed(() => ({
@@ -68,7 +56,7 @@ const captchaPieceStyle = computed(() => {
   const pieceWidth = sliderPieceSize.value.width;
   const pieceHeight = sliderPieceSize.value.height;
   return {
-    left: `${((item.initialX + sliderOffset.value) / item.imageWidth) * 100}%`,
+    left: `${(sliderPositionX.value / item.imageWidth) * 100}%`,
     top: `${(item.initialY / item.imageHeight) * 100}%`,
     width: pieceWidth ? `${(pieceWidth / item.imageWidth) * 100}%` : undefined,
     height: pieceHeight ? `${(pieceHeight / item.imageHeight) * 100}%` : undefined
@@ -87,7 +75,7 @@ function handleCaptchaPieceLoad(event: Event): void {
   const image = event.currentTarget;
   if (!(image instanceof HTMLImageElement)) return;
   sliderPieceSize.value = { width: image.naturalWidth, height: image.naturalHeight };
-  if (sliderOffset.value > sliderMax.value) sliderOffset.value = sliderMax.value;
+  if (sliderPositionX.value > sliderMax.value) sliderPositionX.value = sliderMax.value;
 }
 
 function stopQrPolling(): void {
@@ -114,7 +102,6 @@ async function beginQrLogin(): Promise<void> {
     qrNotice.value = "请使用同花顺 App 扫码。";
     scheduleQrPoll();
   } catch (error) {
-    if (handleUnavailableService(error)) return;
     qrNotice.value = errorMessage(error);
     qrNoticeType.value = "error";
   } finally {
@@ -139,8 +126,14 @@ async function pollQrLogin(): Promise<void> {
     scheduleQrPoll();
   } catch (error) {
     stopQrPolling();
-    if (handleUnavailableService(error)) return;
-    qrNotice.value = `${errorMessage(error)} 请刷新二维码重试。`;
+    if (isQrLoginFlowExpiredError(error)) {
+      qrFlowId.value = undefined;
+      qrImageUrl.value = "";
+      qrNotice.value = error.message;
+      qrNoticeType.value = "warning";
+      return;
+    }
+    qrNotice.value = `暂时无法确认扫码状态，请刷新二维码。${errorMessage(error)}`;
     qrNoticeType.value = "error";
   }
 }
@@ -151,18 +144,8 @@ function showQrPending(status: QrLoginStatus): void {
     : "请使用同花顺 App 扫码。";
 }
 
-function handleUnavailableService(error: unknown): boolean {
-  if (!handleServiceError(error)) return false;
-  stopQrPolling();
-  return true;
-}
-
 function handleTabChange(value: string | number): void {
   activeTab.value = String(value);
-  if (reconnecting.value) {
-    stopQrPolling();
-    return;
-  }
   if (activeTab.value === "qr" && qrFlowId.value !== undefined && qrNoticeType.value !== "success") {
     scheduleQrPoll();
   } else if (activeTab.value === "qr" && qrFlowId.value === undefined && !qrBusy.value) {
@@ -173,6 +156,10 @@ function handleTabChange(value: string | number): void {
 }
 
 async function beginSmsLogin(): Promise<void> {
+  await loadSmsCaptcha("");
+}
+
+async function loadSmsCaptcha(successNotice: string): Promise<void> {
   const phone = phoneNumber.value.trim();
   if (!/^\d{11}$/.test(phone)) {
     smsNotice.value = "请输入 11 位手机号码。";
@@ -186,12 +173,12 @@ async function beginSmsLogin(): Promise<void> {
     const session = await props.service.beginSmsLogin(phone);
     smsFlowId.value = session.flowId;
     captcha.value = session.captcha;
-    sliderOffset.value = 0;
+    sliderPositionX.value = session.captcha.initialX;
     sliderPieceSize.value = { width: 0, height: 0 };
     smsStep.value = "captcha";
-    smsNotice.value = "";
+    smsNotice.value = successNotice;
+    smsNoticeType.value = successNotice ? "warning" : "info";
   } catch (error) {
-    if (handleUnavailableService(error)) return;
     smsNotice.value = errorMessage(error);
     smsNoticeType.value = "error";
   } finally {
@@ -205,12 +192,21 @@ async function sendSmsCode(): Promise<void> {
   smsNotice.value = "正在发送短信验证码…";
   smsNoticeType.value = "info";
   try {
-    await props.service.sendSmsCode(smsFlowId.value, sliderOffset.value, 0);
+    // 同花顺协议中的 RelativeX/RelativeY 表示相对底图左上角的最终位置，
+    // 不是相对 initX/initY 的拖动距离。
+    await props.service.sendSmsCode(
+      smsFlowId.value,
+      sliderPositionX.value,
+      captcha.value.initialY
+    );
     smsStep.value = "code";
     smsNotice.value = "验证码已发送，请查看手机短信。";
     smsNoticeType.value = "success";
   } catch (error) {
-    if (handleUnavailableService(error)) return;
+    if (isSmsCaptchaRejectedError(error)) {
+      await loadSmsCaptcha("位置没有对准，已刷新验证图，请重新拖动。");
+      return;
+    }
     smsNotice.value = errorMessage(error);
     smsNoticeType.value = "error";
   } finally {
@@ -235,7 +231,6 @@ async function completeSmsLogin(): Promise<void> {
     smsNotice.value = "";
     emit("success");
   } catch (error) {
-    if (handleUnavailableService(error)) return;
     smsNotice.value = errorMessage(error);
     smsNoticeType.value = "error";
   } finally {
@@ -254,13 +249,12 @@ function restartSmsLogin(): void {
 
 onBeforeUnmount(() => {
   stopQrPolling();
-  stopReconnectPolling();
 });
 onMounted(() => void beginQrLogin());
 </script>
 
 <template>
-  <ComponentFrame :connection-loading="connectionLoading" loading-tip="正在重连数据服务">
+  <ComponentFrame>
     <a-card
       class="login-panel"
       :title="embedded ? undefined : '行情登录'"
@@ -324,7 +318,7 @@ onMounted(() => void beginQrLogin());
                 >
               </div>
               <a-slider
-                v-model="sliderOffset"
+                v-model="sliderPositionX"
                 class="captcha-slider"
                 :min="0"
                 :max="sliderMax"
@@ -466,8 +460,8 @@ onMounted(() => void beginQrLogin());
 
 .captcha-piece {
   position: absolute;
-  box-sizing: border-box;
-  border: 2px solid rgb(var(--primary-6));
+  outline: 2px solid rgb(var(--primary-6));
+  outline-offset: -2px;
   pointer-events: none;
 }
 

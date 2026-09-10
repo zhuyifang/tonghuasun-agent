@@ -10,7 +10,7 @@ import {
 } from "./bootstrap";
 
 async function main(): Promise<void> {
-  const runtime = await connectMcpApp("fqgate-market-quotes");
+  const runtime = await connectMcpApp("fqgate-market-quotes", "fqgate_market_realtime_cn");
   const securities = readSecurities(await runtime.waitForToolInput());
   if (securities.length === 0) throw new Error("没有收到多股行情所需的证券列表。");
 

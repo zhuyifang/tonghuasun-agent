@@ -14,6 +14,8 @@ import type {
 class FakeRuntime {
   callCount = 0;
   waitCount = 0;
+  lastToolName?: string;
+  lastArguments?: JsonObject;
 
   constructor(
     private readonly snapshot: OriginatingToolSnapshot,
@@ -30,8 +32,10 @@ class FakeRuntime {
     return this.originatingResult;
   }
 
-  async callTool(_name: string, _argumentsValue: JsonObject): Promise<McpToolResult> {
+  async callTool(name: string, argumentsValue: JsonObject): Promise<McpToolResult> {
     this.callCount += 1;
+    this.lastToolName = name;
+    this.lastArguments = argumentsValue;
     return this.repeatedResult;
   }
 }
@@ -77,6 +81,8 @@ assert.equal(runtime.callCount, 0, "消费原始工具结果时不应重复调�
 
 await request();
 assert.equal(runtime.callCount, 1, "原始结果只能消费一次，后续刷新应重新调用工具");
+assert.equal(runtime.lastToolName, "fqgate_market_qr_login_begin");
+assert.deepEqual(runtime.lastArguments, {}, "本机 HTTP 专用参数不得传给 MCP 工具");
 
 const candleEnvelope = { code: 0, message: "操作成功", data: { records: [] } };
 const candleResult = {
@@ -89,7 +95,7 @@ const candleRuntime = new FakeRuntime({
   result: candleResult
 }, candleResult);
 const candleBridge = new McpFqgateFetch(candleRuntime as unknown as McpAppRuntime);
-await candleBridge.fetch("http://127.0.0.1:17281/v1/market/history/klines", {
+const candleRequest = () => candleBridge.fetch("http://127.0.0.1:17281/v1/market/history/klines", {
   method: "POST",
   headers: {
     "content-type": "application/json",
@@ -103,8 +109,17 @@ await candleBridge.fetch("http://127.0.0.1:17281/v1/market/history/klines", {
     adjust: ""
   })
 });
+await candleRequest();
 assert.equal(candleRuntime.waitCount, 0, "已有原始结果时不应再次等待");
 assert.equal(candleRuntime.callCount, 0, "K 线首屏应复用原始工具结果");
+await candleRequest();
+assert.deepEqual(candleRuntime.lastArguments, {
+  market: "USHA",
+  code: "600151",
+  interval: "day",
+  count: 160,
+  requestTimeoutMs: 30000
+}, "MCP 工具应保留公共参数并剔除空的 HTTP 默认参数");
 assert.equal(
   resolveFqgateMcpToolName("POST", "/v1/market/information/news"),
   "fqgate_market_news",

@@ -7,6 +7,8 @@ import {
   type McpUiHostContext
 } from "@modelcontextprotocol/ext-apps";
 
+import { OpenAiComponentBridge, type OpenAiSnapshot } from "@/adapters/vendors/openai";
+
 export type JsonObject = Record<string, unknown>;
 export type McpToolResult = AppEventMap["toolresult"];
 
@@ -17,7 +19,7 @@ export interface OriginatingToolSnapshot {
 }
 
 export interface OptionalHostExtensions {
-  /** OpenAI 私有桥只做能力检测，业务逻辑始终使用标准 MCP Apps 协议。 */
+  /** 是否提供 OpenAI 兼容接口；业务组件不直接依赖此状态。 */
   openaiBridge: boolean;
 }
 
@@ -32,14 +34,21 @@ export class McpAppRuntime {
   readonly extensions: OptionalHostExtensions;
 
   private readonly app: App;
+  private readonly openAiBridge: OpenAiComponentBridge;
+  private readonly configuredOriginatingToolName?: string;
   private readonly inputListeners = new Set<ToolInputListener>();
   private readonly resultListeners = new Set<ToolResultListener>();
+  private releaseOpenAiListener?: () => void;
   private latestArguments?: JsonObject;
   private latestResult?: McpToolResult;
   private connected = false;
 
-  constructor(name: string, version = "0.1.0") {
-    this.extensions = detectOptionalHostExtensions();
+  constructor(name: string, version = "0.1.0", originatingToolName?: string) {
+    this.openAiBridge = new OpenAiComponentBridge();
+    this.configuredOriginatingToolName = originatingToolName;
+    this.extensions = Object.freeze({
+      openaiBridge: this.openAiBridge.getSnapshot().available
+    });
     this.app = new App(
       { name, version },
       {},
@@ -48,18 +57,21 @@ export class McpAppRuntime {
 
     // 一次性通知必须在 connect 前注册，避免严格宿主在握手后立即发送时丢失。
     this.app.addEventListener("toolinput", ({ arguments: value }) => {
-      const argumentsValue = isJsonObject(value) ? value : {};
-      this.latestArguments = argumentsValue;
-      for (const listener of this.inputListeners) listener(argumentsValue);
+      this.acceptToolInput(isJsonObject(value) ? value : {});
     });
     this.app.addEventListener("toolresult", (result) => {
-      this.latestResult = result;
-      for (const listener of this.resultListeners) listener(result);
+      this.acceptToolResult(result);
     });
+    this.releaseOpenAiListener = this.openAiBridge.subscribe((snapshot) => {
+      this.acceptOpenAiSnapshot(snapshot);
+    });
+    this.acceptOpenAiSnapshot(this.openAiBridge.getSnapshot());
     this.app.addEventListener("hostcontextchanged", (context) => applyHostContext(context));
     this.app.onteardown = async () => {
       this.inputListeners.clear();
       this.resultListeners.clear();
+      this.releaseOpenAiListener?.();
+      this.releaseOpenAiListener = undefined;
       return {};
     };
   }
@@ -68,17 +80,23 @@ export class McpAppRuntime {
     if (this.connected) return;
     await this.app.connect();
     this.connected = true;
+    this.acceptOpenAiSnapshot(this.openAiBridge.getSnapshot());
     applyHostContext(this.app.getHostContext());
   }
 
   async callTool(name: string, argumentsValue: JsonObject): Promise<McpToolResult> {
     if (!this.connected) throw new Error("MCP App 尚未完成连接。");
+    const hostSupportsStandardCall = this.app.getHostCapabilities()?.serverTools !== undefined;
+    const openAiSnapshot = this.openAiBridge.getSnapshot();
+    if (!hostSupportsStandardCall && openAiSnapshot.canCallTool) {
+      return this.openAiBridge.callTool(name, argumentsValue);
+    }
     return this.app.callServerTool({ name, arguments: argumentsValue });
   }
 
   getOriginatingToolSnapshot(): OriginatingToolSnapshot {
     return {
-      name: this.app.getHostContext()?.toolInfo?.tool.name,
+      name: this.app.getHostContext()?.toolInfo?.tool.name ?? this.configuredOriginatingToolName,
       arguments: this.latestArguments,
       result: this.latestResult
     };
@@ -97,8 +115,26 @@ export class McpAppRuntime {
   async destroy(): Promise<void> {
     this.inputListeners.clear();
     this.resultListeners.clear();
+    this.releaseOpenAiListener?.();
+    this.releaseOpenAiListener = undefined;
+    this.openAiBridge.destroy();
     await this.app.close();
     this.connected = false;
+  }
+
+  private acceptOpenAiSnapshot(snapshot: OpenAiSnapshot): void {
+    if (snapshot.arguments) this.acceptToolInput(snapshot.arguments);
+    if (snapshot.result) this.acceptToolResult(snapshot.result);
+  }
+
+  private acceptToolInput(argumentsValue: JsonObject): void {
+    this.latestArguments = argumentsValue;
+    for (const listener of this.inputListeners) listener(argumentsValue);
+  }
+
+  private acceptToolResult(result: McpToolResult): void {
+    this.latestResult = result;
+    for (const listener of this.resultListeners) listener(result);
   }
 }
 
@@ -126,11 +162,6 @@ function applyHostContext(context: Partial<McpUiHostContext> | undefined): void 
   if (context?.theme) applyDocumentTheme(context.theme);
   if (context?.styles?.variables) applyHostStyleVariables(context.styles.variables);
   if (context?.styles?.css?.fonts) applyHostFonts(context.styles.css.fonts);
-}
-
-function detectOptionalHostExtensions(): OptionalHostExtensions {
-  const candidate = (globalThis as typeof globalThis & { openai?: unknown }).openai;
-  return Object.freeze({ openaiBridge: candidate !== undefined && candidate !== null });
 }
 
 function isJsonObject(value: unknown): value is JsonObject {

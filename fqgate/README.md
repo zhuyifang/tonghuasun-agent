@@ -1,9 +1,13 @@
 # FQGate 下载与插件配套信息
 
-FQGate 主程序和 AI 插件是两个不同的产品，版本号也各自管理：
+FQGate 主程序和 AI 插件是两个不同的产品，版本号也各自管理。
 
-- FQGate 主程序从 [FQGate 官方发行仓库](https://github.com/zhuyifang/fqgate-releases)下载。
-- Codex、Claude Code、WorkBuddy、豆包等 AI 插件从当前仓库下载。
+> **下载地址别弄混**
+>
+> - `FQGate.exe` 主程序：只从 [FQGate 官方发行仓库](https://github.com/zhuyifang/fqgate-releases)下载。
+> - AI 技能安装包：从 [tonghuasun-agent 发行页](https://github.com/zhuyifang/tonghuasun-agent/releases)下载。安装后会注册 `fqgate-realtime-stock-analyzer`（**同花顺免费实时数据代理**）和 `trade-execution`（**同花顺实盘交易代理**）。
+>
+> `fqgate-realtime-stock-analyzer` 是当前行情技能 ID。`tonghuasun-agent` 的发行页只放 AI 技能安装包，不提供 `FQGate.exe`。
 
 ## 下载 FQGate
 

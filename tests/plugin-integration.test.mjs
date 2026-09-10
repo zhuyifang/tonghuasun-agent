@@ -185,6 +185,7 @@ test("README 和插件清单保留原名称并覆盖核心检索词", () => {
 
 test("八个 AI 工具只使用 FQGate 官方发行仓库", () => {
   const releaseRepository = "https://github.com/zhuyifang/fqgate-releases";
+  const agentReleasePage = "https://github.com/zhuyifang/tonghuasun-agent/releases";
   const stableManifest = `${releaseRepository.replace("github.com", "raw.githubusercontent.com")}/main/releases/stable.json`;
   const releasePage = `${releaseRepository}/releases/tag/fqgate-v0.1.0`;
   const downloadTemplate = `${releaseRepository}/releases/download/fqgate-v<version>/<fileName>`;
@@ -198,6 +199,11 @@ test("八个 AI 工具只使用 FQGate 官方发行仓库", () => {
     assert.ok(readme.includes(releasePage), `${adapter} 缺少 FQGate 官方下载页`);
     assert.ok(readme.includes(stableManifest), `${adapter} 缺少 FQGate 官方稳定版清单`);
     assert.ok(readme.includes(downloadTemplate), `${adapter} 缺少 FQGate 官方下载地址`);
+    assert.ok(readme.includes(agentReleasePage), `${adapter} 缺少 AI 插件发行页`);
+    assert.match(readme, /注册 `fqgate-realtime-stock-analyzer`（\*\*同花顺免费实时数据代理\*\*）/, `${adapter} 缺少行情技能 ID 和名称`);
+    assert.match(readme, /`trade-execution`（\*\*同花顺实盘交易代理\*\*）/, `${adapter} 缺少交易技能 ID 和名称`);
+    assert.match(readme, /`fqgate-realtime-stock-analyzer` 是当前行情技能 ID/, `${adapter} 没有说明当前行情技能 ID`);
+    assert.match(readme, /只放 AI 技能安装包，不提供 `FQGate\.exe`/, `${adapter} 没有说清两个仓库的分工`);
     assert.match(readme, /SHA-256/, `${adapter} 缺少主程序校验要求`);
     assert.match(readme, /创建一个桌面快捷方式/, `${adapter} 缺少桌面快捷方式提醒`);
     assert.match(readme, /安装结束前，确认 FQGate 已经启动.*读取工具列表或完成健康检查/, `${adapter} 缺少安装验收条件`);
@@ -217,6 +223,14 @@ test("八个 AI 工具只使用 FQGate 官方发行仓库", () => {
   assert.match(rootReadme, /安装结束前，AI 应确认 FQGate 已经启动.*读取工具列表或完成健康检查/s);
   assert.equal(existsSync(pathInRepository("fqgate", "releases", "stable.json")), false);
   assert.equal(existsSync(pathInRepository("fqgate", "releases", "0.1.0.json")), false);
+
+  const packagedFqgateDocument = readText("fqgate", "README.md");
+  assert.ok(packagedFqgateDocument.includes(releaseRepository));
+  assert.ok(packagedFqgateDocument.includes(agentReleasePage));
+  assert.match(packagedFqgateDocument, /注册 `fqgate-realtime-stock-analyzer`（\*\*同花顺免费实时数据代理\*\*）/);
+  assert.match(packagedFqgateDocument, /`trade-execution`（\*\*同花顺实盘交易代理\*\*）/);
+  assert.match(packagedFqgateDocument, /`fqgate-realtime-stock-analyzer` 是当前行情技能 ID/);
+  assert.match(packagedFqgateDocument, /只放 AI 技能安装包，不提供 `FQGate\.exe`/);
 });
 
 test("Windows 自动安装使用正式包并在连接验收后才结束", () => {

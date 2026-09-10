@@ -2,7 +2,7 @@ import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { chromium } from "playwright";
-import { assertCommonComponentFrame, assertConnectionMask } from "./component-frame.qa.mjs";
+import { assertCommonComponentFrame } from "./component-frame.qa.mjs";
 
 const targetUrl = "http://127.0.0.1:18792/?component=login";
 const outputDirectory = resolve("..", "..", ".tmp", "ui-apps-qa");
@@ -21,6 +21,8 @@ try {
   const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
   let qrBeginRequests = 0;
   let qrPollRequests = 0;
+  let smsBeginRequests = 0;
+  let smsSendCodeBody;
   let serviceLostAt = 0;
   const healthRequestTimes = [];
   await page.route("**/v1/market/session/qr/begin", async (route) => {
@@ -45,6 +47,17 @@ try {
       serviceLostAt = Date.now();
       return route.fulfill({ status: 500, body: "" });
     }
+    if (qrBeginRequests === 2) {
+      return route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({
+          code: 1003,
+          message: "请求内容不完整或格式不正确，请核对后重试",
+          data: null
+        })
+      });
+    }
     return route.fulfill({
       contentType: "application/json",
       body: JSON.stringify({
@@ -61,26 +74,37 @@ try {
       body: JSON.stringify({ code: 0, message: "ok", data: {} })
     });
   });
-  await page.route("**/v1/market/session/sms/begin", (route) => route.fulfill({
-    contentType: "application/json",
-    body: JSON.stringify({
-      code: 0,
-      message: "ok",
-      data: {
-        flow_id: 9,
-        captcha: {
-          background_image_base64: captchaBackground,
-          background_media_type: "image/svg+xml",
-          slider_image_base64: captchaPiece,
-          slider_media_type: "image/svg+xml",
-          initial_x: 60,
-          initial_y: 30,
-          image_width: 340,
-          image_height: 195
+  await page.route("**/v1/market/session/sms/begin", (route) => {
+    smsBeginRequests += 1;
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({
+        code: 0,
+        message: "ok",
+        data: {
+          flow_id: 8 + smsBeginRequests,
+          captcha: {
+            background_image_base64: captchaBackground,
+            background_media_type: "image/svg+xml",
+            slider_image_base64: captchaPiece,
+            slider_media_type: "image/svg+xml",
+            initial_x: 60,
+            initial_y: 30,
+            image_width: 340,
+            image_height: 195
+          }
         }
-      }
-    })
-  }));
+      })
+    });
+  });
+  await page.route("**/v1/market/session/sms/send-code", async (route) => {
+    smsSendCodeBody = route.request().postDataJSON();
+    return route.fulfill({
+      status: 400,
+      contentType: "application/json",
+      body: JSON.stringify({ code: 3010, message: "滑块验证未通过，请重新操作", data: null })
+    });
+  });
   await page.goto(targetUrl, { waitUntil: "domcontentloaded" });
   await assertSharedConnectionMonitor(page);
 
@@ -92,13 +116,15 @@ try {
   if (qrBeginRequests !== 1) throw new Error(`页面未自动获取二维码：requestCount=${qrBeginRequests}`);
   await assertQrStageHeight(page);
   const settledCardHeight = await elementHeight(page, ".login-panel");
-  await page.getByText("正在重连数据服务", { exact: false }).waitFor({ timeout: 3_000 });
-  await assertConnectionMask(page);
+  await page.getByText("暂时无法确认扫码状态，请刷新二维码。", { exact: false }).waitFor({ timeout: 3_000 });
+  if (await page.locator(".component-connection-mask").count()) {
+    throw new Error("登录组件不应把请求失败显示成数据服务重连遮罩");
+  }
   await assertQrStageHeight(page);
-  const reconnectingCardHeight = await elementHeight(page, ".login-panel");
-  if (settledCardHeight !== reconnectingCardHeight) {
+  const failedCardHeight = await elementHeight(page, ".login-panel");
+  if (settledCardHeight !== failedCardHeight) {
     throw new Error(
-      `重连遮罩导致卡片跳动：before=${settledCardHeight}, reconnecting=${reconnectingCardHeight}`
+      `请求失败导致卡片跳动：before=${settledCardHeight}, failed=${failedCardHeight}`
     );
   }
   await assertSmallButton(page);
@@ -106,7 +132,7 @@ try {
   await assertPreviewFrame(page);
   await assertCommonComponentFrame(page, ".login-panel");
   await page.screenshot({
-    path: resolve(outputDirectory, "desktop-login-reconnecting.jpg"),
+    path: resolve(outputDirectory, "desktop-login-request-error.jpg"),
     type: "jpeg",
     quality: 85
   });
@@ -116,9 +142,15 @@ try {
   if (firstReconnectDelay < 2_700 || firstReconnectDelay > 4_000) {
     throw new Error(`重连轮询间隔不符合 3 秒约定：delay=${firstReconnectDelay}`);
   }
-  await page.getByText("正在重连数据服务", { exact: false }).waitFor({ state: "hidden" });
-  await waitFor(() => qrBeginRequests === 2, 2_000, "服务恢复后没有自动重新获取二维码");
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  if (qrBeginRequests !== 1) throw new Error("数据服务状态不应自动改变登录组件请求");
+  await page.getByRole("button", { name: "刷新二维码" }).click();
+  await waitFor(() => qrBeginRequests === 2, 2_000, "用户刷新后没有重新获取二维码");
   await page.locator(".qr-image").waitFor({ state: "visible" });
+  await expectText(page, "二维码已失效，请刷新二维码。", 3_000);
+  if (await page.locator(".qr-image").count()) {
+    throw new Error("失效二维码仍显示在登录组件中");
+  }
 
   const qrContentHeight = await elementHeight(page, ".qr-flow");
   await page.locator(".arco-tabs-tab-title", { hasText: "短信验证码" }).click();
@@ -135,7 +167,21 @@ try {
   await phoneInput.fill("13800138000");
   await page.getByRole("button", { name: "获取验证码" }).click();
   await page.locator(".captcha-piece").waitFor({ state: "visible" });
-  await assertCaptchaLayout(page, phoneStageHeight);
+  const finalSliderX = await assertCaptchaLayout(page, phoneStageHeight);
+  await page.getByRole("button", { name: "发送验证码" }).click();
+  await expectText(page, "位置没有对准，已刷新验证图，请重新拖动。");
+  if (
+    smsBeginRequests !== 2
+    || smsSendCodeBody?.flow_id !== 9
+    || smsSendCodeBody?.relative_x !== finalSliderX
+    || smsSendCodeBody?.relative_y !== 30
+  ) {
+    throw new Error(`滑块提交的最终坐标或失败刷新异常：${JSON.stringify({
+      smsBeginRequests,
+      smsSendCodeBody,
+      finalSliderX
+    })}`);
+  }
   await page.screenshot({
     path: resolve(outputDirectory, "desktop-sms-captcha.jpg"),
     type: "jpeg",
@@ -249,6 +295,7 @@ async function assertCaptchaLayout(page, phoneStageHeight) {
       pieceWidth: pieceRect.width,
       pieceHeight: pieceRect.height,
       borderWidth: getComputedStyle(piece).borderTopWidth,
+      outlineWidth: getComputedStyle(piece).outlineWidth,
       sliderMin: sliderControl.getAttribute("aria-valuemin"),
       sliderMax: sliderControl.getAttribute("aria-valuemax"),
       sliderValue: sliderControl.getAttribute("aria-valuenow")
@@ -262,10 +309,11 @@ async function assertCaptchaLayout(page, phoneStageHeight) {
     || Math.abs(result.pieceTop - 30) > 1
     || Math.abs(result.pieceWidth - 55) > 1
     || Math.abs(result.pieceHeight - 68) > 1
-    || result.borderWidth !== "2px"
+    || result.borderWidth !== "0px"
+    || result.outlineWidth !== "2px"
     || result.sliderMin !== "0"
-    || result.sliderMax !== "225"
-    || result.sliderValue !== "0"
+    || result.sliderMax !== "285"
+    || result.sliderValue !== "60"
   ) {
     throw new Error(`滑块尺寸或坐标映射异常：${JSON.stringify(result)}`);
   }
@@ -274,7 +322,7 @@ async function assertCaptchaLayout(page, phoneStageHeight) {
   const sliderBox = await slider.boundingBox();
   if (!sliderBox) throw new Error("无法读取滑块位置");
   await slider.click({ position: { x: sliderBox.width / 2, y: sliderBox.height / 2 } });
-  await page.waitForFunction(() => document.querySelector('[role="slider"]')?.getAttribute("aria-valuenow") !== "0");
+  await page.waitForFunction(() => document.querySelector('[role="slider"]')?.getAttribute("aria-valuenow") !== "60");
   const moved = await page.evaluate(() => {
     const stage = document.querySelector(".captcha-stage")?.getBoundingClientRect();
     const piece = document.querySelector(".captcha-piece")?.getBoundingClientRect();
@@ -285,9 +333,10 @@ async function assertCaptchaLayout(page, phoneStageHeight) {
     } : null;
   });
   const movedValue = Number(moved?.value);
-  if (!moved || !Number.isFinite(movedValue) || movedValue <= 0 || Math.abs(moved.left - (60 + movedValue)) > 1) {
+  if (!moved || !Number.isFinite(movedValue) || movedValue <= 0 || Math.abs(moved.left - movedValue) > 1) {
     throw new Error(`滑块移动与拼图 X 轴不同步：${JSON.stringify(moved)}`);
   }
+  return movedValue;
 }
 
 async function elementHeight(page, selector) {

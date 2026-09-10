@@ -81,6 +81,19 @@ function Assert-Package(
         throw "发行包清单版本不一致：$ManifestPath"
     }
 
+    $fqgateReleaseRepository = "https://github.com/zhuyifang/fqgate-releases"
+    $agentReleasePage = "https://github.com/zhuyifang/tonghuasun-agent/releases"
+    foreach ($documentPath in @("README.md", "docs\FQGate.md")) {
+        $absoluteDocumentPath = Join-Path $PackageRoot $documentPath
+        $document = Get-Content -LiteralPath $absoluteDocumentPath -Raw -Encoding UTF8
+        if ($document.IndexOf($fqgateReleaseRepository, [StringComparison]::Ordinal) -lt 0) {
+            throw "发行包文档没有说明 FQGate 主程序仓库：$absoluteDocumentPath"
+        }
+        if ($document.IndexOf($agentReleasePage, [StringComparison]::Ordinal) -lt 0) {
+            throw "发行包文档没有说明 AI 插件仓库：$absoluteDocumentPath"
+        }
+    }
+
     $forbiddenFilePatterns = @("ThsPlugin.*", "tonghuasun-mcp-proxy.mjs", "*.pdb", "*.dSYM", "*.dmp", "*.key", "*.pem")
     foreach ($pattern in $forbiddenFilePatterns) {
         $matches = @(Get-ChildItem -LiteralPath $PackageRoot -Recurse -Force -File -Filter $pattern)
@@ -101,9 +114,12 @@ function Assert-Package(
         if ($file.Extension -notin $textExtensions) { continue }
         $text = Get-Content -LiteralPath $file.FullName -Raw -Encoding UTF8
         foreach ($forbidden in $forbiddenText) {
-            if ($text.Contains($forbidden, [StringComparison]::OrdinalIgnoreCase)) {
+            if ($text.IndexOf($forbidden, [StringComparison]::OrdinalIgnoreCase) -ge 0) {
                 throw "发行包包含 V1 或私有边界引用：$($file.FullName)：$forbidden"
             }
+        }
+        if ($file.Extension -eq ".md" -and $text -match "(?:github\.com/zhuyifang|gitee\.com/qicuo)/tonghuasun-agent/(?:releases/(?:tag|download)/fqgate-v|raw/main/fqgate/releases)") {
+            throw "发行包文档错误地从 AI 插件仓库下载 FQGate：$($file.FullName)"
         }
     }
 }

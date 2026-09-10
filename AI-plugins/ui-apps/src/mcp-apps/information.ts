@@ -10,7 +10,7 @@ import {
 } from "./bootstrap";
 
 async function main(): Promise<void> {
-  const runtime = await connectMcpApp("fqgate-information");
+  const runtime = await connectMcpApp("fqgate-information", "fqgate_market_news");
   const security = readSecurity(await runtime.waitForToolInput());
   if (!security) throw new Error("没有收到资讯查询所需的证券代码。");
 

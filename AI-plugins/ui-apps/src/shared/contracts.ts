@@ -49,7 +49,7 @@ export interface LoginService extends UiDataSource {
   beginQrLogin(): Promise<QrLoginSession>;
   pollQrLogin(flowId: number): Promise<QrLoginProgress>;
   beginSmsLogin(phoneNumber: string): Promise<SmsLoginSession>;
-  sendSmsCode(flowId: number, relativeX: number, relativeY: number): Promise<void>;
+  sendSmsCode(flowId: number, imageX: number, imageY: number): Promise<void>;
   completeSmsLogin(flowId: number, verificationCode: string): Promise<LoginResult>;
 }
 

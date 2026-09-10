@@ -5,11 +5,14 @@ import { McpAppRuntime, type JsonObject } from "@/adapters/mcp-app";
 import type { MarketSecurity } from "@/shared/contracts";
 import "@/style.css";
 
-export const MCP_APP_VERSION = "0.1.0";
+export const MCP_APP_VERSION = "0.1.1";
 export const FQGATE_LOOPBACK_URL = "http://127.0.0.1:17281";
 
-export async function connectMcpApp(name: string): Promise<McpAppRuntime> {
-  const runtime = new McpAppRuntime(name, MCP_APP_VERSION);
+export async function connectMcpApp(
+  name: string,
+  originatingToolName?: string
+): Promise<McpAppRuntime> {
+  const runtime = new McpAppRuntime(name, MCP_APP_VERSION, originatingToolName);
   await runtime.connect();
   window.addEventListener("pagehide", () => void runtime.destroy(), { once: true });
   return runtime;

@@ -9,7 +9,7 @@ import {
 } from "./bootstrap";
 
 async function main(): Promise<void> {
-  const runtime = await connectMcpApp("fqgate-login");
+  const runtime = await connectMcpApp("fqgate-login", "fqgate_market_qr_login_begin");
   const bridge = new McpFqgateFetch(runtime);
   const service = new FqgateLoginService({
     baseUrl: FQGATE_LOOPBACK_URL,

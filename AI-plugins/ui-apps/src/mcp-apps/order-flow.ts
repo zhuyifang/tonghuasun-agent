@@ -10,7 +10,7 @@ import {
 } from "./bootstrap";
 
 async function main(): Promise<void> {
-  const runtime = await connectMcpApp("fqgate-order-flow");
+  const runtime = await connectMcpApp("fqgate-order-flow", "fqgate_market_level2_orders");
   const initialSecurity = readSecurity(await runtime.waitForToolInput(1_000));
   const bridge = new McpFqgateFetch(runtime);
   const serviceOptions = { baseUrl: FQGATE_LOOPBACK_URL, fetch: bridge.fetch };
