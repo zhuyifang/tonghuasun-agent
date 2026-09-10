@@ -85,6 +85,10 @@ export interface CandleBar {
   turnoverRate?: number | null;
 }
 
+export interface SecuritySearchService extends UiDataSource {
+  searchSecurities(pattern: string, signal?: AbortSignal): Promise<MarketSecurity[]>;
+}
+
 export interface CandleLatest extends CandleBar {
   change: number | null;
   changePercent: number | null;
@@ -253,8 +257,7 @@ export interface OrderFlowWatchConnection {
   close(): void;
 }
 
-export interface OrderFlowWatchService extends UiDataSource {
-  searchSecurities(pattern: string): Promise<MarketSecurity[]>;
+export interface OrderFlowWatchService extends SecuritySearchService {
   connect(
     security: MarketSecurity,
     listener: OrderFlowWatchListener,

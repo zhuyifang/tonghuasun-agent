@@ -11,6 +11,7 @@ import type {
   OrderFlowWatchService
 } from "@/shared/contracts";
 import type { DataServiceConnection } from "@/shared/dataService";
+import { searchFqgateSecurities } from "./FqgateSecuritySearchService";
 import {
   FqgateHttpClient,
   toFqgateWebSocketUrl,
@@ -24,15 +25,6 @@ interface FqgateMarketHealth {
   level2_permission: boolean | null;
   login_method?: string | null;
   reason?: string;
-}
-
-interface FqgateSearchData {
-  items: Array<{
-    code: string;
-    name: string;
-    market: string;
-    ths_code: string;
-  }>;
 }
 
 interface FqgateStreamMessage {
@@ -72,17 +64,8 @@ export class FqgateOrderFlowService implements OrderFlowWatchService {
     return this.client.connection;
   }
 
-  async searchSecurities(pattern: string): Promise<MarketSecurity[]> {
-    const result = await this.client.post<FqgateSearchData>(
-      "/v1/market/catalog/search-symbols",
-      { pattern: pattern.trim() }
-    );
-    return result.items.map((item) => ({
-      market: item.market,
-      code: item.code,
-      name: item.name,
-      fullCode: item.ths_code
-    }));
+  searchSecurities(pattern: string, signal?: AbortSignal): Promise<MarketSecurity[]> {
+    return searchFqgateSecurities(this.client, pattern, signal);
   }
 
   async connect(

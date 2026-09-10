@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, toRef, watch } from "vue";
 
 import ComponentFrame from "@/components/shared/ComponentFrame.vue";
+import SecurityCodeEditor from "@/components/shared/SecurityCodeEditor.vue";
 import type { ComponentConnectionState } from "@/components/shared/contracts";
 import { useDataServiceReconnect } from "@/composables/useDataServiceReconnect";
 import { useDelayedVisibility } from "@/composables/useDelayedVisibility";
@@ -19,7 +20,8 @@ import type {
   MarketRealtimeListener,
   MarketRealtimeQuote,
   MarketRealtimeService,
-  MarketSecurity
+  MarketSecurity,
+  SecuritySearchService
 } from "@/shared/contracts";
 import { isLineKlineInterval, klineIntervalLabel } from "@/shared/kline";
 import { CandleChartController } from "./CandleChartController";
@@ -44,6 +46,7 @@ import {
 
 const props = withDefaults(defineProps<{
   service: CandleService;
+  securityService: SecuritySearchService;
   marketDepthService: MarketDepthService;
   realtimeService: MarketRealtimeService;
   security: MarketSecurity;
@@ -61,11 +64,13 @@ const props = withDefaults(defineProps<{
 
 type PanelState = "idle" | "connecting" | "connected" | "paused" | "reconnecting" | "error";
 const TRANSACTION_BUFFER_LIMIT = 500;
+const emit = defineEmits<{ "update:security": [security: MarketSecurity] }>();
+const security = ref<MarketSecurity>({ ...props.security });
 
 const root = ref<HTMLElement>();
 const streamEnabled = useDelayedVisibility(root, toRef(props, "active"), props.hiddenDelayMs);
 const chartElement = ref<HTMLElement>();
-const interval = ref<KlineInterval>(props.initialInterval ?? defaultCandleInterval(props.security));
+const interval = ref<KlineInterval>(props.initialInterval ?? defaultCandleInterval());
 const data = ref<CandleData>();
 const hoverBar = ref<CandleBar>();
 const busy = ref(false);
@@ -89,7 +94,6 @@ let resumeVersion = 0;
 let realtimeResyncPromise: Promise<void> | undefined;
 let previousClose: number | null = null;
 const realtimeCursor: RealtimeCandleCursor = {};
-let followsDefaultInterval = props.initialInterval === undefined;
 
 const {
   reconnecting: dataServiceReconnecting,
@@ -117,10 +121,7 @@ const changeText = computed(() => {
   if (!isDisplayingLatest.value || !data.value) return "—";
   return `${formatSignedPrice(data.value.latest.change)}  ${formatSignedPercent(data.value.latest.changePercent)}`;
 });
-const securityName = computed(() => data.value?.security.name || props.security.name || props.security.code);
-const securityCode = computed(() => (
-  data.value?.security.fullCode || props.security.fullCode || `${props.security.market}${props.security.code}`
-));
+const securityName = computed(() => data.value?.security.name || security.value.name || security.value.code);
 const latestTime = computed(() => {
   if (!displayedBar.value) return "等待行情数据";
   return `${displayedBar.value.label} · ${data.value?.intervalLabel ?? ""}`;
@@ -151,7 +152,7 @@ function errorMessage(value: unknown): string {
 
 function candleQuery(targetInterval: KlineInterval) {
   return {
-    security: props.security,
+    security: security.value,
     interval: targetInterval,
     count: props.count,
     adjustment: props.adjustment
@@ -212,7 +213,7 @@ async function loadMarketDepth(): Promise<void> {
   marketDepthBusy.value = true;
   marketDepthError.value = "";
   try {
-    const result = await props.marketDepthService.getMarketDepth(props.security, controller.signal);
+    const result = await props.marketDepthService.getMarketDepth(security.value, controller.signal);
     if (version === marketDepthVersion && !controller.signal.aborted) marketDepthData.value = result;
   } catch (reason) {
     if (controller.signal.aborted || version !== marketDepthVersion) return;
@@ -228,7 +229,6 @@ async function refreshAll(): Promise<void> {
 
 async function resumeRealtime(): Promise<void> {
   if (!streamEnabled.value) return;
-  if (followsDefaultInterval) interval.value = defaultCandleInterval(props.security);
   const version = ++resumeVersion;
   stopRealtimeConnection();
   await refreshAll();
@@ -301,7 +301,7 @@ async function startRealtimeConnection(): Promise<void> {
   };
 
   try {
-    const connection = await props.realtimeService.connect(props.security, listener, controller.signal);
+    const connection = await props.realtimeService.connect(security.value, listener, controller.signal);
     if (version !== realtimeVersion || !streamEnabled.value) {
       connection.close();
       return;
@@ -376,10 +376,10 @@ function updateMarketDepth(bids: MarketDepthLevel[], asks: MarketDepthLevel[]): 
 function ensureMarketDepthData(): MarketDepthData {
   return marketDepthData.value ?? {
     security: {
-      market: props.security.market,
-      code: props.security.code,
-      name: props.security.name || props.security.code,
-      fullCode: props.security.fullCode || `${props.security.market}${props.security.code}`
+      market: security.value.market,
+      code: security.value.code,
+      name: security.value.name || security.value.code,
+      fullCode: security.value.fullCode || `${security.value.market}${security.value.code}`
     },
     mode: "basic",
     fallbackReason: "level2_unknown",
@@ -410,7 +410,6 @@ function prefetchOneMinute(): void {
 }
 
 function handlePeriodChange(value: string | number | boolean): void {
-  followsDefaultInterval = false;
   interval.value = String(value) as KlineInterval;
   void loadCandles();
 }
@@ -430,19 +429,39 @@ function toggleMovingAverages(): void {
   chartController?.setMovingAveragesVisible(showMovingAverages.value);
 }
 
+function changeSecurity(value: MarketSecurity): void {
+  security.value = { ...value };
+  emit("update:security", value);
+}
+
 watch(
   () => [props.security.market, props.security.code, props.security.name, props.security.fullCode],
+  () => { security.value = { ...props.security }; }
+);
+
+watch(
+  security,
   () => {
+    // 切换代码先使旧请求和推送失效，不能在新标题下展示上一只证券的图表或盘口。
     resumeVersion += 1;
     stopRealtimeConnection();
+    renderVersion += 1;
+    marketDepthVersion += 1;
+    marketDepthAbort?.abort();
+    chartController?.destroy();
     data.value = undefined;
+    hoverBar.value = undefined;
     marketDepthData.value = undefined;
+    error.value = "";
+    streamError.value = "";
+    marketDepthError.value = "";
     previousClose = null;
     realtimeCursor.dayKey = undefined;
     realtimeCursor.volume = undefined;
     realtimeCursor.amount = undefined;
     if (streamEnabled.value) void resumeRealtime();
-  }
+  },
+  { flush: "sync" }
 );
 
 watch(
@@ -504,10 +523,10 @@ onBeforeUnmount(() => {
     <a-card class="candle-panel" :body-style="{ padding: 0 }">
     <header class="quote-header">
       <div class="identity">
-        <div class="title-row">
-          <a-typography-title :heading="6">{{ securityName }}</a-typography-title>
-          <a-typography-text type="secondary">{{ securityCode }}</a-typography-text>
-        </div>
+        <SecurityCodeEditor
+          class="title-row" :security="security" :name="securityName"
+          :service="securityService" @change="changeSecurity"
+        />
         <div class="price-row">
           <strong class="latest-price" :class="directionClass">{{ formatPrice(displayedBar?.close) }}</strong>
           <span class="price-change" :class="directionClass">{{ changeText }}</span>
@@ -618,6 +637,7 @@ onBeforeUnmount(() => {
 
 .quote-header {
   display: flex;
+  flex-wrap: nowrap;
   min-width: 0;
   align-items: flex-start;
   justify-content: space-between;
@@ -626,20 +646,17 @@ onBeforeUnmount(() => {
 }
 
 .identity {
-  flex: 0 0 auto;
-  min-width: 190px;
+  flex: 0 1 auto;
+  min-width: 0;
+  width: 190px;
+  max-width: 100%;
 }
 
-.title-row,
 .price-row {
   display: flex;
   align-items: baseline;
   gap: 9px;
   white-space: nowrap;
-}
-
-.title-row :deep(.arco-typography) {
-  margin: 0;
 }
 
 .latest-price {
@@ -675,7 +692,7 @@ onBeforeUnmount(() => {
 
 .toolbar {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 200px;
   min-width: 0;
   align-items: center;
   justify-content: flex-end;
@@ -810,10 +827,6 @@ onBeforeUnmount(() => {
   .quote-header {
     gap: 12px;
     padding: 16px 14px 10px;
-  }
-
-  .identity {
-    min-width: 160px;
   }
 
   .stat-grid {

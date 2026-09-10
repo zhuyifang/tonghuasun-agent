@@ -1,6 +1,7 @@
 import { McpFqgateFetch } from "@/adapters/mcp-app";
 import {
   FqgateCandleService,
+  FqgateSecuritySearchService,
   FqgateMarketDepthService,
   FqgateMarketRealtimeService
 } from "@/adapters/local-api";
@@ -28,6 +29,7 @@ async function main(): Promise<void> {
   const serviceOptions = { baseUrl: FQGATE_LOOPBACK_URL, fetch: bridge.fetch };
   mountSharedComponent(CandlePanel, {
     service: new FqgateCandleService(serviceOptions),
+    securityService: new FqgateSecuritySearchService(serviceOptions),
     marketDepthService: new FqgateMarketDepthService(serviceOptions),
     realtimeService: new FqgateMarketRealtimeService(serviceOptions),
     security,

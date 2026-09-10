@@ -1,4 +1,5 @@
 export { FqgateCandleService, type FqgateCandleServiceOptions } from "./FqgateCandleService";
+export { FqgateSecuritySearchService } from "./FqgateSecuritySearchService";
 export {
   FqgateMarketQuoteService,
   type FqgateMarketQuoteServiceOptions

@@ -3,6 +3,7 @@ import { computed, defineAsyncComponent, ref } from "vue";
 
 import {
   FqgateCandleService,
+  FqgateSecuritySearchService,
   FqgateInformationService,
   FqgateLoginService,
   FqgateMarketDepthService,
@@ -29,6 +30,7 @@ const previewInitialCandleInterval = readPreviewCandleInterval();
 const visitedKeys = ref(new Set([selectedKey.value]));
 const loginService = new FqgateLoginService();
 const candleService = new FqgateCandleService();
+const securityService = new FqgateSecuritySearchService();
 const marketDepthService = new FqgateMarketDepthService();
 const marketRealtimeService = new FqgateMarketRealtimeService();
 const informationService = new FqgateInformationService();
@@ -100,6 +102,7 @@ function readPreviewCandleInterval(): KlineInterval | undefined {
             <CandlePanel
               :active="selectedKey === 'candle'"
               :service="candleService"
+              :security-service="securityService"
               :market-depth-service="marketDepthService"
               :realtime-service="marketRealtimeService"
               :security="previewSecurity"

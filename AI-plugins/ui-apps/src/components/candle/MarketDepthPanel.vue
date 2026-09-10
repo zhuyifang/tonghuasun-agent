@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from "vue";
 
 import type {
   MarketDepthData,
@@ -19,8 +19,11 @@ const emit = defineEmits<{
   retry: [];
 }>();
 
+const TRANSACTION_ROW_HEIGHT = 20;
 const transactionViewportElement = ref<HTMLElement>();
 const transactionViewportHeight = ref(1);
+const sellViewportElement = ref<HTMLElement>();
+const buyViewportElement = ref<HTMLElement>();
 let transactionResizeObserver: ResizeObserver | undefined;
 
 const visibleDepthLevelCount = computed(() => props.data?.mode === "level2" ? 10 : 5);
@@ -44,8 +47,9 @@ const transactionVirtualListProps = computed(() => ({
   height: transactionViewportHeight.value,
   threshold: 10,
   fixedSize: true,
-  estimatedSize: 20,
-  buffer: 6,
+  estimatedSize: TRANSACTION_ROW_HEIGHT,
+  // Arco 的缓冲区需要覆盖至少半屏数据，否则快速拖到底部时会露出虚假空白。
+  buffer: Math.max(6, Math.ceil(transactionViewportHeight.value / TRANSACTION_ROW_HEIGHT / 2) + 2),
   itemKey: "id"
 }));
 
@@ -58,9 +62,30 @@ onMounted(() => {
   measure();
   transactionResizeObserver = new ResizeObserver(measure);
   transactionResizeObserver.observe(element);
+  alignDepthViewports();
 });
 
 onBeforeUnmount(() => transactionResizeObserver?.disconnect());
+
+watch(
+  [
+    () => props.data?.mode,
+    () => sellLevels.value.length,
+    () => buyLevels.value.length
+  ],
+  alignDepthViewports,
+  { flush: "post" }
+);
+
+/** 初次展示或档位数量变化时，让卖一、买一始终紧邻中间分隔线。 */
+function alignDepthViewports(): void {
+  void nextTick(() => {
+    const sellViewport = sellViewportElement.value;
+    const buyViewport = buyViewportElement.value;
+    if (sellViewport) sellViewport.scrollTop = sellViewport.scrollHeight;
+    if (buyViewport) buyViewport.scrollTop = 0;
+  });
+}
 
 function formatTime(timestamp: number | null): string {
   if (timestamp === null) return "—";
@@ -103,19 +128,23 @@ function rowKey(item: MarketTransaction): string {
       </div>
 
       <div class="depth-rows">
-        <div class="depth-side sell-side">
-          <div v-for="item in sellLevels" :key="`sell-${item.level}`" class="data-row">
-            <span class="sell-value">卖{{ item.level }}</span>
-            <span>{{ formatPrice(item.price) }}</span>
-            <span>{{ formatCompact(item.volume) }}</span>
+        <div ref="sellViewportElement" class="depth-side sell-side">
+          <div class="depth-side-content">
+            <div v-for="item in sellLevels" :key="`sell-${item.level}`" class="data-row">
+              <span class="sell-value">卖{{ item.level }}</span>
+              <span>{{ formatPrice(item.price) }}</span>
+              <span>{{ formatCompact(item.volume) }}</span>
+            </div>
           </div>
         </div>
         <div class="depth-divider" aria-hidden="true" />
-        <div class="depth-side buy-side">
-          <div v-for="item in buyLevels" :key="`buy-${item.level}`" class="data-row">
-            <span class="buy-value">买{{ item.level }}</span>
-            <span>{{ formatPrice(item.price) }}</span>
-            <span>{{ formatCompact(item.volume) }}</span>
+        <div ref="buyViewportElement" class="depth-side buy-side">
+          <div class="depth-side-content">
+            <div v-for="item in buyLevels" :key="`buy-${item.level}`" class="data-row">
+              <span class="buy-value">买{{ item.level }}</span>
+              <span>{{ formatPrice(item.price) }}</span>
+              <span>{{ formatCompact(item.volume) }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -188,13 +217,13 @@ function rowKey(item: MarketTransaction): string {
   background: var(--color-bg-2);
 }
 
-.market-depth-panel[data-mode="level2"] {
-  grid-template-rows: 295px minmax(0, 1fr);
-}
-
 .depth-section,
 .details-section {
   min-height: 0;
+}
+
+.depth-section {
+  height: 205px;
 }
 
 .details-section {
@@ -230,11 +259,6 @@ function rowKey(item: MarketTransaction): string {
   text-align: right;
 }
 
-.market-depth-panel[data-mode="level2"] .depth-rows .data-row {
-  height: 12px;
-  font-size: 10px;
-}
-
 .data-header {
   height: 20px;
   color: var(--color-text-3);
@@ -250,15 +274,25 @@ function rowKey(item: MarketTransaction): string {
 }
 
 .depth-side {
-  display: flex;
   min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.depth-side-content {
+  display: flex;
+  min-height: 100%;
   flex-direction: column;
 }
 
+.sell-side .depth-side-content {
+  justify-content: flex-end;
+}
+
 .depth-side .data-row {
-  flex: 1 1 0;
-  height: auto;
-  min-height: 0;
+  height: 15px;
+  flex: 0 0 15px;
 }
 
 .depth-divider {
@@ -353,19 +387,16 @@ function rowKey(item: MarketTransaction): string {
   .market-depth-panel {
     width: 100%;
     min-width: 0;
-    height: auto;
-    min-height: 220px;
+    height: 206px;
+    min-height: 206px;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-rows: none;
+    grid-template-rows: 205px;
     border-left: 0;
   }
 
-  .market-depth-panel[data-mode="level2"] {
-    grid-template-rows: none;
-  }
-
   .details-section {
-    min-height: 220px;
+    height: 205px;
+    min-height: 205px;
     border-top: 0;
     border-left: 1px solid var(--color-border-2);
   }
@@ -373,12 +404,15 @@ function rowKey(item: MarketTransaction): string {
 
 @media (max-width: 560px) {
   .market-depth-panel {
+    height: 411px;
+    min-height: 411px;
     grid-template-columns: 1fr;
+    grid-template-rows: 205px 205px;
   }
 
   .details-section {
-    height: 220px;
-    min-height: 140px;
+    height: 205px;
+    min-height: 205px;
     border-top: 1px solid var(--color-border-2);
     border-left: 0;
   }

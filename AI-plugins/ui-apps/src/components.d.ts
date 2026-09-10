@@ -57,5 +57,6 @@ declare module 'vue' {
     MarketSparkline: typeof import('./components/market-quotes/MarketSparkline.vue')['default']
     OrderFlowWatchPanel: typeof import('./components/order-flow/OrderFlowWatchPanel.vue')['default']
     PermissionRequiredState: typeof import('./components/shared/PermissionRequiredState.vue')['default']
+    SecurityCodeEditor: typeof import('./components/shared/SecurityCodeEditor.vue')['default']
   }
 }

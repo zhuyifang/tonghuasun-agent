@@ -220,21 +220,26 @@ async function assertLevel2MarketDepthSelection(browser) {
     }],
     records: []
   })));
+  const level2Transactions = Array.from({ length: 500 }, (_, index) => semanticTransaction(
+    500 - index,
+    index === 0 ? 10.17 : 10.16,
+    900 + index,
+    index % 2 === 0 ? "buy" : "sell",
+    1_789_009_202_000 - index * 1_000
+  ));
   await level2Page.route("**/v1/market/level2/transactions", (route) => route.fulfill(apiResponse({
     records: [],
-    semantic_records: [[
-      semanticTransaction(3, 10.17, 2_800, "buy", 1_789_009_202_000),
-      semanticTransaction(2, 10.16, 1_600, "sell", 1_789_009_201_000),
-      semanticTransaction(1, 10.16, 900, "unknown", 1_789_009_200_000)
-    ]]
+    semantic_records: [level2Transactions]
   })));
   await level2Page.goto(targetUrl, { waitUntil: "domcontentloaded" });
   await waitForMarketDepthOutcome(level2Page);
   await level2Page.locator(".depth-section").getByText("L2", { exact: true }).waitFor();
   await level2Page.getByText("盘口", { exact: true }).waitFor();
-  await level2Page.getByText("卖10", { exact: true }).waitFor();
-  await level2Page.getByText("买10", { exact: true }).waitFor();
+  await level2Page.getByText("卖10", { exact: true }).waitFor({ state: "attached" });
+  await level2Page.getByText("买10", { exact: true }).waitFor({ state: "attached" });
   await level2Page.getByText("10.17", { exact: true }).last().waitFor();
+  await assertLevel2DepthScrolling(level2Page);
+  await assertTransactionVirtualScroll(level2Page);
   assertPermissionSelectedEndpoints("level2", level2Requests);
   await level2Page.screenshot({
     path: resolve(outputDirectory, "desktop-candle-level2.jpg"),
@@ -285,6 +290,80 @@ async function assertLevel2MarketDepthSelection(browser) {
     fullPage: true
   });
   await fallbackPage.close();
+}
+
+async function assertLevel2DepthScrolling(page) {
+  const layout = await page.evaluate(() => {
+    const section = document.querySelector(".depth-section");
+    const sell = document.querySelector(".sell-side");
+    const buy = document.querySelector(".buy-side");
+    const divider = document.querySelector(".depth-divider");
+    if (!(section instanceof HTMLElement)
+      || !(sell instanceof HTMLElement)
+      || !(buy instanceof HTMLElement)
+      || !(divider instanceof HTMLElement)) return null;
+    const findRow = (viewport, label) => [...viewport.querySelectorAll(".data-row")]
+      .find((row) => row.firstElementChild?.textContent?.trim() === label)
+      ?.getBoundingClientRect();
+    const dividerRect = divider.getBoundingClientRect();
+    return {
+      sectionHeight: section.getBoundingClientRect().height,
+      sellClientHeight: sell.clientHeight,
+      sellScrollHeight: sell.scrollHeight,
+      sellScrollTop: sell.scrollTop,
+      buyClientHeight: buy.clientHeight,
+      buyScrollHeight: buy.scrollHeight,
+      buyScrollTop: buy.scrollTop,
+      sellOneBottom: findRow(sell, "卖1")?.bottom,
+      buyOneTop: findRow(buy, "买1")?.top,
+      dividerTop: dividerRect.top,
+      dividerBottom: dividerRect.bottom
+    };
+  });
+  if (!layout) throw new Error("L2 盘口滚动区域未渲染。");
+  if (layout.sectionHeight !== 205) {
+    throw new Error(`L2 盘口不应改变原有高度：${JSON.stringify(layout)}`);
+  }
+  if (layout.sellScrollHeight <= layout.sellClientHeight || layout.buyScrollHeight <= layout.buyClientHeight) {
+    throw new Error(`L2 十档未提供滚动区域：${JSON.stringify(layout)}`);
+  }
+  const sellAtBottom = Math.abs(
+    layout.sellScrollHeight - layout.sellClientHeight - layout.sellScrollTop
+  ) <= 1;
+  if (!sellAtBottom || layout.buyScrollTop !== 0) {
+    throw new Error(`卖盘未滚至底部或买盘未停在顶部：${JSON.stringify(layout)}`);
+  }
+  if (Math.abs(layout.sellOneBottom - layout.dividerTop) > 1
+    || Math.abs(layout.buyOneTop - layout.dividerBottom) > 1) {
+    throw new Error(`卖一、买一未紧邻中间分隔线：${JSON.stringify(layout)}`);
+  }
+}
+
+async function assertTransactionVirtualScroll(page) {
+  const viewport = page.locator(".arco-virtual-list");
+  await viewport.evaluate((element) => {
+    element.scrollTop = element.scrollHeight - element.clientHeight;
+    element.dispatchEvent(new Event("scroll"));
+  });
+  await page.waitForTimeout(100);
+  const layout = await viewport.evaluate((element) => {
+    const viewportRect = element.getBoundingClientRect();
+    const rows = [...element.querySelectorAll(".details-list-item")]
+      .map((row) => row.getBoundingClientRect())
+      .filter((rect) => rect.bottom > viewportRect.top && rect.top < viewportRect.bottom);
+    const last = rows.at(-1);
+    return {
+      scrollTop: element.scrollTop,
+      maxScrollTop: element.scrollHeight - element.clientHeight,
+      visibleRows: rows.length,
+      bottomGap: last ? viewportRect.bottom - last.bottom : viewportRect.height
+    };
+  });
+  if (Math.abs(layout.scrollTop - layout.maxScrollTop) > 1
+    || layout.visibleRows === 0
+    || layout.bottomGap > 1) {
+    throw new Error(`成交明细滚到底部出现空白：${JSON.stringify(layout)}`);
+  }
 }
 
 async function installPassiveRealtimeSocket(page, denyLevel2) {
