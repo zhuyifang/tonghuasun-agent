@@ -284,6 +284,19 @@ test("Agent 正式构建不依赖 FQGate 的发布状态", () => {
   assert.match(buildScript, /SHA256SUMS\.txt/);
 });
 
+test("WorkBuddy 正式包本身就是可安装的插件市场", () => {
+  const buildScript = readText("scripts", "Build-AgentPlugins.ps1");
+  const releaseHelpers = readText("scripts", "release", "Common.ps1");
+  const readme = readText("AI-plugins", "workbuddy", "README.md");
+
+  assert.match(buildScript, /name = "fqgate-official"/);
+  assert.match(buildScript, /Compress-PackageContents \$marketplaceRoot/);
+  assert.match(releaseHelpers, /function Compress-PackageContents/);
+  assert.match(readme, /plugin marketplace add \.\\fqgate-agent-workbuddy-0\.3\.0\.zip --name fqgate-official/);
+  assert.match(readme, /plugin install fqgate-agent@fqgate-official/);
+  assert.match(readme, /发行包本身就是正式插件市场/);
+});
+
 test("千问安装器复制运行时所需的兼容清单", () => {
   const installer = readText("AI-plugins", "qianwen", "install.ps1");
   assert.match(installer, /metadata\\fqgate-compatibility\.json/);

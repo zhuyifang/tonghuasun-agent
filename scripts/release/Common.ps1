@@ -109,18 +109,13 @@ function Assert-Package(
     }
 }
 
-function Compress-Package(
-    [string]$PackageRoot,
-    [string]$ArtifactDirectory,
-    [string]$ArchiveName
+function Write-DeterministicZip(
+    [string]$SourceRoot,
+    [string]$ArchivePath,
+    [string]$EntryRoot = ""
 ) {
-    $archivePath = Join-Path $ArtifactDirectory $ArchiveName
-    if (Test-Path -LiteralPath $archivePath -PathType Leaf) {
-        Remove-Item -LiteralPath $archivePath -Force
-    }
     Add-Type -AssemblyName System.IO.Compression
-    $resolvedPackageRoot = [IO.Path]::GetFullPath($PackageRoot).TrimEnd("\", "/")
-    $rootName = Split-Path -Leaf $resolvedPackageRoot
+    $resolvedSourceRoot = [IO.Path]::GetFullPath($SourceRoot).TrimEnd("\", "/")
     $fixedTimestamp = [DateTimeOffset]::new(2000, 1, 1, 0, 0, 0, [TimeSpan]::Zero)
     $stream = [IO.File]::Open($archivePath, [IO.FileMode]::CreateNew, [IO.FileAccess]::ReadWrite)
     try {
@@ -131,10 +126,15 @@ function Compress-Package(
             [Text.Encoding]::UTF8)
         try {
             # 固定条目顺序与时间戳，保证相同源码反复构建得到同一 SHA-256。
-            foreach ($file in Get-ChildItem -LiteralPath $resolvedPackageRoot -Recurse -Force -File |
+            foreach ($file in Get-ChildItem -LiteralPath $resolvedSourceRoot -Recurse -Force -File |
                 Sort-Object FullName) {
-                $relativePath = $file.FullName.Substring($resolvedPackageRoot.Length).TrimStart("\", "/")
-                $entryName = "$rootName/$($relativePath.Replace('\', '/'))"
+                $relativePath = $file.FullName.Substring($resolvedSourceRoot.Length).TrimStart("\", "/").Replace("\", "/")
+                $entryName = if ([string]::IsNullOrWhiteSpace($EntryRoot)) {
+                    $relativePath
+                }
+                else {
+                    "$($EntryRoot.TrimEnd('/', '\'))/$relativePath"
+                }
                 $entry = $archive.CreateEntry($entryName, [IO.Compression.CompressionLevel]::Optimal)
                 $entry.LastWriteTime = $fixedTimestamp
                 $input = [IO.File]::OpenRead($file.FullName)
@@ -149,6 +149,32 @@ function Compress-Package(
         finally { $archive.Dispose() }
     }
     finally { $stream.Dispose() }
+}
+
+function Compress-Package(
+    [string]$PackageRoot,
+    [string]$ArtifactDirectory,
+    [string]$ArchiveName
+) {
+    $archivePath = Join-Path $ArtifactDirectory $ArchiveName
+    if (Test-Path -LiteralPath $archivePath -PathType Leaf) {
+        Remove-Item -LiteralPath $archivePath -Force
+    }
+    $rootName = Split-Path -Leaf ([IO.Path]::GetFullPath($PackageRoot).TrimEnd("\", "/"))
+    Write-DeterministicZip $PackageRoot $archivePath $rootName
+    return $archivePath
+}
+
+function Compress-PackageContents(
+    [string]$PackageRoot,
+    [string]$ArtifactDirectory,
+    [string]$ArchiveName
+) {
+    $archivePath = Join-Path $ArtifactDirectory $ArchiveName
+    if (Test-Path -LiteralPath $archivePath -PathType Leaf) {
+        Remove-Item -LiteralPath $archivePath -Force
+    }
+    Write-DeterministicZip $PackageRoot $archivePath
     return $archivePath
 }
 
@@ -162,6 +188,31 @@ function Assert-ArchiveRoot([string]$ArchivePath, [string]$RootName) {
         }
         if (@($entries | Where-Object { -not $_.StartsWith("$RootName/", [StringComparison]::Ordinal) }).Count -gt 0) {
             throw "ZIP 根目录不唯一：$ArchivePath"
+        }
+    }
+    finally { $archive.Dispose() }
+}
+
+function Assert-ArchiveEntries(
+    [string]$ArchivePath,
+    [string[]]$RequiredEntries,
+    [string[]]$AllowedPrefixes
+) {
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [IO.Compression.ZipFile]::OpenRead($ArchivePath)
+    try {
+        $entries = @($archive.Entries | ForEach-Object { $_.FullName.Replace("\", "/") })
+        foreach ($requiredEntry in $RequiredEntries) {
+            if ($requiredEntry -notin $entries) {
+                throw "ZIP 缺少必要条目：$requiredEntry"
+            }
+        }
+        foreach ($entry in $entries) {
+            if (-not @($AllowedPrefixes | Where-Object {
+                $entry.StartsWith($_, [StringComparison]::Ordinal)
+            }).Count) {
+                throw "ZIP 包含不允许的顶层条目：$entry"
+            }
         }
     }
     finally { $archive.Dispose() }

@@ -5,6 +5,7 @@
 ## 本次更新
 
 - 接入 Codex、Claude Code、WorkBuddy、ZCode、OpenClaw、DeepSeek Harness、豆包和千问。
+- WorkBuddy 正式包可直接添加为 `fqgate-official` 插件市场，无需手工包装本地市场。
 - Codex 直接连接本机 FQGate；需要标准输入输出连接的其他客户端统一复用 FQGate 提供的入口。
 - 按配置、行情、账户和交易职责拆分公共技能。
 - 移除旧版 JavaScript MCP 代理和原生 DLL 分发载荷。

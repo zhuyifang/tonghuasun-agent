@@ -47,8 +47,8 @@
     {
       "adapter": "workbuddy",
       "fileName": "fqgate-agent-workbuddy-0.3.0.zip",
-      "size": 79099,
-      "sha256": "d461235874e3789926e9d351779aaec72868d565cbf070fd97f412eb474b1dae"
+      "size": 79789,
+      "sha256": "7daaf3556d0cd627ad5864bf35214f7f1e510d0fff938942fe0286ca9b356f65"
     },
     {
       "adapter": "zcode",

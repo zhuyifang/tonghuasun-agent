@@ -54,9 +54,39 @@ try {
         Copy-DirectoryContents $sourceRoot $packageRoot @("ADAPTER.md")
         Copy-CommonPackage $repositoryRoot $packageRoot (Join-Path $sourceRoot "ADAPTER.md")
         Assert-Package $packageRoot $agentVersion $definition.Manifest
-        $archive = Compress-Package $packageRoot $artifactDirectory $definition.Archive
-        Assert-ArchiveRoot $archive "fqgate-agent"
-        $artifacts += $archive
+
+        if ($definition.Name -eq "workbuddy") {
+            # WorkBuddy 的持久安装入口是插件市场，正式包必须可直接添加为市场，不能只分发裸插件目录。
+            $marketplaceRoot = Join-Path $resolvedTemporaryRoot "workbuddy-marketplace"
+            $marketplacePluginRoot = Join-Path $marketplaceRoot "fqgate-agent"
+            Copy-DirectoryContents $packageRoot $marketplacePluginRoot
+            Write-JsonFile (Join-Path $marketplaceRoot ".codebuddy-plugin\marketplace.json") ([ordered]@{
+                name = "fqgate-official"
+                description = "FQGate 官方 WorkBuddy 插件市场。"
+                owner = [ordered]@{ name = "zhuyifang" }
+                plugins = @([ordered]@{
+                    name = "fqgate-agent"
+                    source = "./fqgate-agent"
+                    description = "同花顺免费开源AI插件FQGate，为 WorkBuddy 提供本机行情、K 线、Level-2、资讯、账户查询和可选交易工具。"
+                    version = $agentVersion
+                    author = [ordered]@{ name = "zhuyifang" }
+                    homepage = "https://github.com/zhuyifang/tonghuasun-agent/tree/main/AI-plugins/workbuddy"
+                    repository = "https://github.com/zhuyifang/tonghuasun-agent"
+                    license = "AGPL-3.0-only"
+                    category = "productivity"
+                })
+            })
+            $archive = Compress-PackageContents $marketplaceRoot $artifactDirectory $definition.Archive
+            Assert-ArchiveEntries $archive `
+                @(".codebuddy-plugin/marketplace.json", "fqgate-agent/.codebuddy-plugin/plugin.json") `
+                @(".codebuddy-plugin/", "fqgate-agent/")
+            $artifacts += $archive
+        }
+        else {
+            $archive = Compress-Package $packageRoot $artifactDirectory $definition.Archive
+            Assert-ArchiveRoot $archive "fqgate-agent"
+            $artifacts += $archive
+        }
 
         if ($definition.Name -eq "zcode") {
             $marketplaceRoot = Join-Path $resolvedTemporaryRoot "zcode-marketplace\fqgate-agent-zcode-marketplace"
