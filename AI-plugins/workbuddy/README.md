@@ -25,8 +25,10 @@
    codebuddy plugin install fqgate-agent@fqgate-official
    ```
 
-4. 重启 WorkBuddy，运行 `configure-fqgate`；自动发现失败时提供 FQGate 可执行文件路径。
+4. 重启 WorkBuddy，调用“同花顺免费实时数据代理”检查连接；自动发现失败时提供 FQGate 可执行文件路径。
 5. 用 `fqgate_market_market_health` 验证本机 MCP 连接。
+
+安装后只显示“同花顺免费实时数据代理”和“同花顺实盘交易代理”两个技能。行情登录、连接检查和故障处理属于数据代理的内部能力，不会额外占用技能入口。
 
 WorkBuddy 入口开启了 FQGate 的结构化结果文字兼容模式。文字副本只用于客户端兼容，不代表需要重复调用工具。
 

@@ -5,7 +5,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $pluginVersion = "0.3.0"
-$skillNames = @("configure-fqgate", "market-data", "account-query", "trade-execution")
+$skillNames = @("fqgate-realtime-stock-analyzer", "trade-execution")
+$retiredSkillNames = @("market-data", "configure-fqgate", "account-query")
 
 function ConvertTo-Hashtable([object]$Value) {
     if ($null -eq $Value) { return $null }
@@ -96,13 +97,24 @@ function Test-ManagedSkill([string]$DestinationPath) {
 }
 
 function Test-SameSkill([string]$SourcePath, [string]$DestinationPath) {
-    $sourceSkill = Join-Path $SourcePath "SKILL.md"
-    $destinationSkill = Join-Path $DestinationPath "SKILL.md"
-    if (-not (Test-Path -LiteralPath $destinationSkill -PathType Leaf)) { return $false }
+    if (-not (Test-Path -LiteralPath $DestinationPath -PathType Container)) { return $false }
+    $sourceRoot = [IO.Path]::GetFullPath($SourcePath).TrimEnd("\", "/")
+    $destinationRoot = [IO.Path]::GetFullPath($DestinationPath).TrimEnd("\", "/")
+    $sourceFiles = @(Get-ChildItem -LiteralPath $sourceRoot -Recurse -File -Force)
     $destinationFiles = @(Get-ChildItem -LiteralPath $DestinationPath -Recurse -File -Force |
         Where-Object { $_.Name -ne ".fqgate-agent-managed.json" })
-    return $destinationFiles.Count -eq 1 -and
-        (Get-FileSha256 $sourceSkill) -eq (Get-FileSha256 $destinationSkill)
+    if ($sourceFiles.Count -ne $destinationFiles.Count) { return $false }
+
+    # 技能包含元数据等子文件，必须按相对路径和内容校验完整目录，避免重复覆盖安装。
+    foreach ($sourceFile in $sourceFiles) {
+        $relativePath = $sourceFile.FullName.Substring($sourceRoot.Length).TrimStart("\", "/")
+        $destinationFile = Join-Path $destinationRoot $relativePath
+        if (-not (Test-Path -LiteralPath $destinationFile -PathType Leaf)) { return $false }
+        if ((Get-FileSha256 $sourceFile.FullName) -ne (Get-FileSha256 $destinationFile)) {
+            return $false
+        }
+    }
+    return $true
 }
 
 function Install-Skill([string]$SourcePath, [string]$DestinationPath, [string]$SkillName) {
@@ -163,7 +175,7 @@ if ($Uninstall) {
             $config["mcpServers"].Remove("fqgate")
             [void](Write-JsonUtf8IfChanged $mcpPath $config)
         }
-        foreach ($skillName in $skillNames) {
+        foreach ($skillName in @($skillNames + $retiredSkillNames)) {
             $skillPath = Join-Path $accountRoot.FullName "skills\$skillName"
             if ((Test-Path -LiteralPath $skillPath -PathType Container) -and (Test-ManagedSkill $skillPath)) {
                 Remove-Item -LiteralPath $skillPath -Recurse -Force
@@ -216,6 +228,14 @@ foreach ($accountRoot in $accountRoots) {
     if (Test-Path -LiteralPath (Join-Path $legacySkillPath ".tonghuasun-agent-managed.json") -PathType Leaf) {
         Remove-Item -LiteralPath $legacySkillPath -Recurse -Force
         $configurationChanged = $true
+    }
+    foreach ($skillName in $retiredSkillNames) {
+        $retiredSkillPath = Join-Path $accountRoot.FullName "skills\$skillName"
+        if ((Test-Path -LiteralPath $retiredSkillPath -PathType Container) -and
+            (Test-ManagedSkill $retiredSkillPath)) {
+            Remove-Item -LiteralPath $retiredSkillPath -Recurse -Force
+            $configurationChanged = $true
+        }
     }
     foreach ($skillName in $skillNames) {
         $sourcePath = Join-Path $sourceSkillsRoot $skillName

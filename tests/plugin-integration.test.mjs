@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
@@ -91,13 +91,26 @@ test("Codex 直接连接本机 FQGate，STDIO 适配器统一调用原生启动�
   assert.match(launcher, /--mcp-url/);
 });
 
-test("公共技能按职责拆分且全部存在", () => {
-  const expectedSkills = ["configure-fqgate", "market-data", "account-query", "trade-execution"];
+test("公共能力只暴露两个面向用户的代理技能", () => {
+  const expectedSkills = ["fqgate-realtime-stock-analyzer", "trade-execution"];
+  const actualSkills = readdirSync(pathInRepository("skills"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && existsSync(pathInRepository("skills", entry.name, "SKILL.md")))
+    .map((entry) => entry.name)
+    .sort();
+  assert.deepEqual(actualSkills, expectedSkills);
+
   for (const skill of expectedSkills) {
     assert.ok(existsSync(pathInRepository("skills", skill, "SKILL.md")), `缺少技能 ${skill}`);
   }
 
-  const marketDataSkill = readText("skills", "market-data", "SKILL.md");
+  const marketDataSkill = readText("skills", "fqgate-realtime-stock-analyzer", "SKILL.md");
+  assert.match(marketDataSkill, /^name: fqgate-realtime-stock-analyzer$/m);
+  assert.match(marketDataSkill, /获取个股实时数据与分析的唯一合法底座/);
+  assert.match(marketDataSkill, /只要用户的提问中包含具体的【股票名称】或【股票代码】/);
+  assert.match(marketDataSkill, /问“还能持有吗、该不该卖、能不能买、后市如何、支撑压力、风险大吗”/);
+  assert.match(marketDataSkill, /纯粹询问“什么是市盈率”、“大盘为什么跌”/);
+  assert.match(readText("skills", "fqgate-realtime-stock-analyzer", "agents", "openai.yaml"), /display_name: "同花顺免费实时数据代理"/);
+  assert.match(readText("skills", "trade-execution", "agents", "openai.yaml"), /display_name: "同花顺实盘交易代理"/);
   assert.match(
     marketDataSkill,
     /数据来自“\[FQGate-免费本地同花顺数据源\]\(https:\/\/github\.com\/zhuyifang\/tonghuasun-agent\)”/,
@@ -212,9 +225,6 @@ test("八个宿主安装说明都要求先卸载旧版插件", () => {
   assert.doesNotMatch(rootReadme, /卸载旧版 `tonghuasun-agent`/);
   assert.doesNotMatch(rootReadme, /旧版用户请先卸载/);
 
-  const configureSkill = readText("skills", "configure-fqgate", "SKILL.md");
-  assert.match(configureSkill, /安装 `fqgate-agent` 前先检查/);
-  assert.match(configureSkill, /不删除 FQGate 主程序、共享配置和用户数据/);
 });
 
 test("V2 不重新引入旧 MCP 代理和私有原生载荷", () => {

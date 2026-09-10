@@ -1,0 +1,4 @@
+interface:
+  display_name: "同花顺实盘交易代理"
+  short_description: "同花顺账户、资产、持仓查询与实盘交易"
+  default_prompt: "使用 $trade-execution 查询我的同花顺交易账户或处理一笔实盘交易。"

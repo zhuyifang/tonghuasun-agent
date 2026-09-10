@@ -27,7 +27,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Uninstall
 
 3. 等待千问重新加载工具后新建工作任务，确认 `fqgate` MCP 已连接。
 
-安装器会写入四个按职责拆分的技能和一个 FQGate MCP 入口；不会复制或修改 FQGate。重复运行同一版本不会覆盖用户创建的同名技能或 MCP 配置。
+安装器只会写入“同花顺免费实时数据代理”和“同花顺实盘交易代理”两个技能，以及一个 FQGate MCP 入口；不会复制或修改 FQGate。重复运行同一版本不会覆盖用户创建的同名技能或 MCP 配置。
 
 千问入口启用结构化结果文字兼容模式。持续订阅需使用 FQGate 原生 WebSocket/SSE，不把一次快照描述成持续盯盘。
 

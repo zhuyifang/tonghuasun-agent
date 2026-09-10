@@ -5,7 +5,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 $pluginVersion = "0.3.0"
-$skillNames = @("configure-fqgate", "market-data", "account-query", "trade-execution")
+$skillNames = @("fqgate-realtime-stock-analyzer", "trade-execution")
+$retiredSkillNames = @("market-data", "configure-fqgate", "account-query")
 
 trap {
     Write-Output $_.Exception.Message
@@ -60,14 +61,25 @@ function Test-LegacySkill([string]$DestinationPath) {
 }
 
 function Test-SameSkill([string]$SourcePath, [string]$DestinationPath) {
-    $sourceSkill = Join-Path $SourcePath "SKILL.md"
-    $destinationSkill = Join-Path $DestinationPath "SKILL.md"
-    if (-not (Test-Path -LiteralPath $destinationSkill -PathType Leaf)) { return $false }
+    if (-not (Test-Path -LiteralPath $DestinationPath -PathType Container)) { return $false }
+    $sourceRoot = [IO.Path]::GetFullPath($SourcePath).TrimEnd("\", "/")
+    $destinationRoot = [IO.Path]::GetFullPath($DestinationPath).TrimEnd("\", "/")
+    $sourceFiles = @(Get-ChildItem -LiteralPath $sourceRoot -Recurse -File -Force)
     $destinationFiles = @(Get-ChildItem -LiteralPath $DestinationPath -Recurse -File -Force |
         Where-Object { $_.Name -ne ".fqgate-agent-managed.json" })
-    return $destinationFiles.Count -eq 1 -and
-        (Get-FileHash -LiteralPath $sourceSkill -Algorithm SHA256).Hash -eq
-        (Get-FileHash -LiteralPath $destinationSkill -Algorithm SHA256).Hash
+    if ($sourceFiles.Count -ne $destinationFiles.Count) { return $false }
+
+    # 技能包含元数据等子文件，必须按相对路径和内容校验完整目录，避免重复覆盖安装。
+    foreach ($sourceFile in $sourceFiles) {
+        $relativePath = $sourceFile.FullName.Substring($sourceRoot.Length).TrimStart("\", "/")
+        $destinationFile = Join-Path $destinationRoot $relativePath
+        if (-not (Test-Path -LiteralPath $destinationFile -PathType Leaf)) { return $false }
+        if ((Get-FileHash -LiteralPath $sourceFile.FullName -Algorithm SHA256).Hash -ne
+            (Get-FileHash -LiteralPath $destinationFile -Algorithm SHA256).Hash) {
+            return $false
+        }
+    }
+    return $true
 }
 
 function Install-Skill([string]$SourcePath, [string]$DestinationPath, [string]$SkillName) {
@@ -100,12 +112,12 @@ $changedCount = 0
 
 foreach ($workspace in $workspaces) {
     $skillsRoot = Join-Path $workspace.Path ".user_skills"
-    foreach ($skillName in $skillNames) {
+    foreach ($skillName in @($skillNames + $retiredSkillNames)) {
         $destinationPath = Join-Path $skillsRoot $skillName
         if (-not (Test-PathWithin $destinationPath $skillsRoot)) {
             throw "拒绝修改预期目录之外的文件：$destinationPath"
         }
-        if ($Uninstall) {
+        if ($Uninstall -or $skillName -in $retiredSkillNames) {
             if ((Test-Path -LiteralPath $destinationPath -PathType Container) -and
                 (Test-ManagedSkill $destinationPath)) {
                 Remove-Item -LiteralPath $destinationPath -Recurse -Force

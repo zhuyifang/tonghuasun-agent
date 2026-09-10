@@ -1,0 +1,4 @@
+interface:
+  display_name: "同花顺免费实时数据代理"
+  short_description: "同花顺实时行情、K线、Level-2与证券资讯"
+  default_prompt: "使用 $fqgate-realtime-stock-analyzer 查询同花顺实时行情并给出有数据依据的回答。"

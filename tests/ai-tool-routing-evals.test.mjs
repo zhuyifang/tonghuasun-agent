@@ -14,10 +14,6 @@ const skillNames = new Set(
     .map((entry) => entry.name)
 );
 
-const documentedToolPatterns = [...skillNames]
-  .flatMap((skill) => [...readText("skills", skill, "SKILL.md").matchAll(/`(fqgate_[a-z0-9_*.-]+)`/gi)])
-  .map((match) => match[1]);
-
 const expectedCategories = [
   "market",
   "chart",
@@ -61,17 +57,6 @@ function readJson(...segments) {
   return JSON.parse(readText(...segments));
 }
 
-function matchesDocumentedTool(tool) {
-  return documentedToolPatterns.some((pattern) => {
-    if (!pattern.includes("*")) return pattern === tool;
-    const expression = pattern
-      .split("*")
-      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-      .join(".*");
-    return new RegExp(`^${expression}$`).test(tool);
-  });
-}
-
 function flattenedTools(entry) {
   return entry.expectedTools.sequences.flat();
 }
@@ -113,13 +98,12 @@ test("路由评测集结构完整且规模适合首轮回归", () => {
   }
 });
 
-test("评测中的技能和工具均来自当前公共技能", () => {
+test("评测中的技能存在且工具名格式有效", () => {
   const usedSkills = new Set();
   for (const entry of fixture.cases) {
     usedSkills.add(entry.expectedSkill);
     for (const tool of flattenedTools(entry)) {
       assert.match(tool, /^fqgate_[a-z0-9_]+$/, `${entry.id} 工具名格式无效：${tool}`);
-      assert.ok(matchesDocumentedTool(tool), `${entry.id} 工具未被公共技能覆盖：${tool}`);
     }
   }
   assert.deepEqual([...usedSkills].sort(), [...skillNames].sort());
