@@ -121,6 +121,28 @@ test("插件 ID、显示名称和品牌图标保持统一", () => {
   assert.match(zcode.description, new RegExp(displayName));
 });
 
+test("README 和插件清单保留原名称并覆盖核心检索词", () => {
+  const readme = readText("README.md");
+  const workspace = readJson("package.json");
+  const requiredKeywords = ["fqgate", "tonghuasun-agent", "mcp", "a-share", "market-data", "kline", "level-2", "quant-trading"];
+
+  assert.match(readme, /原插件名为 `tonghuasun-agent`，现已更名为 `fqgate-agent`/);
+  assert.match(readme, /A 股实时行情/);
+  assert.match(readme, /Level-2/);
+  assert.doesNotMatch(readme, /V2 分支|使用 V2 分支|V2 版本|V2 插件|V2 已提供/);
+
+  for (const keyword of requiredKeywords) {
+    assert.ok(workspace.keywords.includes(keyword), `根项目缺少关键词 ${keyword}`);
+  }
+
+  for (const adapter of ["codex", "claude-code", "workbuddy", "zcode", "openclaw", "deepseek-harness"]) {
+    const manifestEntry = manifests.find(([name]) => name === adapter);
+    const manifest = readJson("AI-plugins", ...manifestEntry);
+    assert.ok(manifest.keywords.includes("tonghuasun-agent"), `${adapter} 未保留原插件名关键词`);
+    assert.ok(manifest.keywords.includes("FQGate"), `${adapter} 缺少当前插件关键词`);
+  }
+});
+
 test("V2 不重新引入旧 MCP 代理和私有原生载荷", () => {
   assert.equal(
     existsSync(pathInRepository("tonghuasun-mcp", "distribution", "scripts", "tonghuasun-mcp-proxy.mjs")),

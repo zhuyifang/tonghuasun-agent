@@ -3,7 +3,7 @@
   "id": "fqgate-agent",
   "name": "同花顺免费开源AI插件FQGate",
   "version": "0.3.0",
-  "description": "在豆包中通过本机 FQGate 查询行情、账户、持仓、委托和成交数据。",
+  "description": "同花顺免费开源AI插件FQGate（原 tonghuasun-agent），在豆包中查询本机 A 股行情、K 线、Level-2、资讯、账户和交易数据。",
   "author": "zhuyifang",
   "homepage": "https://github.com/zhuyifang/tonghuasun-agent",
   "license": "AGPL-3.0-only",

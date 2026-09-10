@@ -1,27 +1,29 @@
-# 免费开源AI插件
+# 同花顺免费开源AI插件FQGate (QQ群-14546787)
 
-> 面向 Codex、Claude Code、WorkBuddy、ZCode、OpenClaw、DeepSeek Harness、豆包和千问的本机 AI 量化数据与交易插件
+> 面向 Codex、Claude Code、WorkBuddy、ZCode、OpenClaw、DeepSeek Harness、豆包和千问的本机 A 股行情、量化数据与交易插件
 
-### 数据来自同花顺,最好用的股票交易软件!
+### 数据来自同花顺，响应更快、运行更稳定
 
-通过这个插件，你可以在常用 AI 助手中直接查询 A 股行情、K 线、Level-2、证券资料、账户资产、持仓、委托和成交数据，也可以在明确确认后执行交易操作。
+通过这个插件，你可以在常用 AI 助手中直接查询 A 股实时行情、分时、K 线、Level-2 逐笔数据、资讯公告、证券资料、账户资产、持仓、委托和成交数据，也可以在明确确认后执行交易操作。
 
-插件技术 ID 为 `fqgate-agent`。所有 AI 插件入口、安装适配、技能和界面组件均免费开源，不设订阅、会员、套餐、试用额度或付费解锁。FQGate 作为本机量化网关单独提供编译包，并适用其随包许可。
+> **更名说明：** 本项目原插件名为 `tonghuasun-agent`，现已更名为 `fqgate-agent`。GitHub 和 Gitee 仓库地址继续沿用原名称，方便旧用户、已有收藏和外部链接继续访问。当前展示名称为“同花顺免费开源AI插件FQGate”。
+
+所有 AI 插件入口、安装适配、技能和界面组件均免费开源，不设订阅、会员、套餐、试用额度或付费解锁。FQGate 作为本机量化网关单独提供编译包，并适用其随包许可。
 
 这是一个由独立开发者维护的非官方项目，与同花顺及其关联公司不存在授权、合作或背书关系。插件不会增加任何行情、账户或交易权限，你能看到的数据和能使用的功能仍以当前账户及相应服务权限为准。
 
-> **V2 版本为 `0.3.0`，兼容 FQGate `0.1.x`。** 正式安装包可从 GitHub 或 Gitee 发行页面下载，并提供 SHA-256 校验信息供你核对。
+> **当前插件版本为 `0.3.0`，兼容 FQGate `0.1.x`。** 正式安装包可从 GitHub 或 Gitee 发行页面下载，并提供 SHA-256 校验信息供你核对。
 
 ## 项目地址
 
-- 国内仓库：[Gitee V2 分支](https://gitee.com/qicuo/tonghuasun-agent/tree/V2)
-- GitHub 仓库：[GitHub V2 分支](https://github.com/zhuyifang/tonghuasun-agent/tree/V2)
+- 国内仓库：[Gitee](https://gitee.com/qicuo/tonghuasun-agent)
+- GitHub 仓库：[GitHub](https://github.com/zhuyifang/tonghuasun-agent)
 
 ## 一句话安装
 
 在你正在使用的 AI 助手中直接发送：
 
-> 安装并配置同花顺免费开源AI插件FQGate，项目地址：<https://gitee.com/qicuo/tonghuasun-agent.git>，使用 V2 分支。
+> 安装并配置同花顺免费开源AI插件FQGate，项目地址：<https://gitee.com/qicuo/tonghuasun-agent.git>。
 
 AI 助手会根据你使用的工具选择对应的正式安装包并完成配置。自动安装失败时，可以前往 [GitHub 发行页面](https://github.com/zhuyifang/tonghuasun-agent/releases) 或 [Gitee 发行页面](https://gitee.com/qicuo/tonghuasun-agent/releases) 手动下载。
 
@@ -49,7 +51,7 @@ AI 助手会根据你使用的工具选择对应的正式安装包并完成配�
 
 > **响应更快、运行更稳定**
 >
-> FQGate 是本项目 V2 使用的本机量化网关。与常见的网页抓取、脚本转发或多层接口封装方案相比，FQGate 最核心的优势是**响应更快、运行更稳定**：它以本机常驻服务直接连接行情与交易会话，减少中间转发和重复初始化，再通过统一的超时、错误码、请求编号和日志机制，让长时间运行时的失败边界更明确、问题更容易定位。
+> FQGate 是本项目使用的本机量化网关。与常见的网页抓取、脚本转发或多层接口封装方案相比，FQGate 最核心的优势是**响应更快、运行更稳定**：它以本机常驻服务直接连接行情与交易会话，减少中间转发和重复初始化，再通过统一的超时、错误码、请求编号和日志机制，让长时间运行时的失败边界更明确、问题更容易定位。
 
 - 一个 FQGate 实例可以同时服务多个 AI 工具，不需要为每个工具重复维护数据连接。
 - 行情、账户、交易和插件界面使用统一接口，不同 AI 工具之间的体验更一致。
@@ -64,7 +66,7 @@ AI 助手会根据你使用的工具选择对应的正式安装包并完成配�
 
 ## 界面组件
 
-V2 已提供行情登录、个股行情、资讯、多股行情和 Level-2 逐笔委托界面。界面直接连接本机 FQGate，不提供模拟行情；是否显示相应数据，取决于当前登录状态和账户权限。
+插件已提供行情登录、个股行情、资讯、多股行情和 Level-2 逐笔委托界面。界面直接连接本机 FQGate，不提供模拟行情；是否显示相应数据，取决于当前登录状态和账户权限。
 
 [交易接口演示](./examples/trading-demo/README.md)可用于查看账户、资产、持仓和交易记录，并核对委托等操作的请求与返回结果。
 
@@ -90,7 +92,7 @@ V2 已提供行情登录、个股行情、资讯、多股行情和 Level-2 逐�
 
 ## 数据与隐私
 
-FQGate 默认只监听当前电脑的 `127.0.0.1:17281`，V2 插件不会连接公网或局域网中的 FQGate 地址。行情、账户和交易数据不会上传给项目维护者。
+FQGate 默认只监听当前电脑的 `127.0.0.1:17281`，AI 插件不会连接公网或局域网中的 FQGate 地址。行情、账户和交易数据不会上传给项目维护者。
 
 使用云端 AI 服务时，工具结果可能由你选择的服务处理，具体以该服务的隐私政策和设置为准。详细说明见[隐私政策](./docs/legal/PRIVACY.md)，软件风险见[使用条款](./docs/legal/TERMS.md)。
 
@@ -109,7 +111,7 @@ FQGate 默认只监听当前电脑的 `127.0.0.1:17281`，V2 插件不会连接�
 ## 版本与开源说明
 
 - 版本兼容关系及下载校验信息：[FQGate 集成信息](./fqgate/README.md)
-- V2 版本说明：[RELEASE_NOTES.md](./RELEASE_NOTES.md)
+- 当前版本说明：[RELEASE_NOTES.md](./RELEASE_NOTES.md)
 - 插件界面项目：[AI-plugins/ui-apps](./AI-plugins/ui-apps/README.md)
 
 AI 插件入口、安装适配、技能、界面组件和可选 SDK 依据 AGPL-3.0-only 开源。FQGate 编译包适用其随包许可，详细范围见[法律与许可说明](./docs/legal/)。
