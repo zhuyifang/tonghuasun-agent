@@ -1,6 +1,8 @@
-# 同花顺免费开源AI插件FQGate
+# 免费开源AI插件
 
 > 面向 Codex、Claude Code、WorkBuddy、ZCode、OpenClaw、DeepSeek Harness、豆包和千问的本机 AI 量化数据与交易插件
+
+### 数据来自同花顺,最好用的股票交易软件!
 
 通过这个插件，你可以在常用 AI 助手中直接查询 A 股行情、K 线、Level-2、证券资料、账户资产、持仓、委托和成交数据，也可以在明确确认后执行交易操作。
 
@@ -8,7 +10,7 @@
 
 这是一个由独立开发者维护的非官方项目，与同花顺及其关联公司不存在授权、合作或背书关系。插件不会增加任何行情、账户或交易权限，你能看到的数据和能使用的功能仍以当前账户及相应服务权限为准。
 
-> **V2 当前为开发预览版。** 插件版本为 `0.3.0`，兼容 FQGate `0.1.x`。正式安装包和校验信息尚未发布，普通用户请等待发行页面更新；已有兼容 FQGate 的开发者可以按下方方式体验。
+> **V2 版本为 `0.3.0`，兼容 FQGate `0.1.x`。** 正式安装包可从 GitHub 或 Gitee 发行页面下载，并提供 SHA-256 校验信息供你核对。
 
 ## 项目地址
 
@@ -21,7 +23,7 @@
 
 > 安装并配置同花顺免费开源AI插件FQGate，项目地址：<https://gitee.com/qicuo/tonghuasun-agent.git>，使用 V2 分支。
 
-当前 V2 尚未发布正式安装包，这句话会引导 AI 按开发版流程构建插件，并在需要时请你选择本机 FQGate 可执行文件。正式版发布后，这里会更新为面向普通用户的直接安装流程。
+AI 助手会根据你使用的工具选择对应的正式安装包并完成配置。自动安装失败时，可以前往 [GitHub 发行页面](https://github.com/zhuyifang/tonghuasun-agent/releases) 或 [Gitee 发行页面](https://gitee.com/qicuo/tonghuasun-agent/releases) 手动下载。
 
 ## 选择你使用的 AI 工具
 
@@ -58,7 +60,7 @@
 - 安装并启动兼容的 FQGate `0.1.x`。
 - 在 FQGate 中完成行情登录；查询账户或交易时，还需要单独登录对应券商账户。
 - 首次安装或升级插件后，如果当前任务没有显示新工具，请新建任务或重新加载插件。
-- 核心程序尚未使用代码签名，正式发行包会提供 SHA-256 校验信息；如果不能接受闭源且未签名的本机组件，请不要安装或开启交易功能。
+- 核心程序尚未使用代码签名，发行包提供 SHA-256 校验信息；如果不能接受闭源且未签名的本机组件，请不要安装或开启交易功能。
 
 ## 界面组件
 
@@ -104,9 +106,9 @@ FQGate 默认只监听当前电脑的 `127.0.0.1:17281`，V2 插件不会连接�
 
 赞赏者：<img src="./assets/sponsors/feng-kevin.jpg" alt="峰-Kevin" width="32" height="32"> **峰-Kevin** · <img src="./assets/sponsors/adong.jpg" alt="阿东" width="32" height="32"> **阿东** · <img src="./assets/sponsors/xingguang.jpg" alt="星光" width="32" height="32"> **星光** · <img src="./assets/sponsors/xu.jpg" alt="許" width="32" height="32"> **許** · <img src="./assets/sponsors/xuhao.jpg" alt="序号" width="32" height="32"> **序号** · <img src="./assets/sponsors/ice.jpg" alt="ICE" width="32" height="32"> **ICE** · <img src="./assets/sponsors/u_u.jpg" alt="U_U" width="32" height="32"> **U_U** · <img src="./assets/sponsors/wd.jpg" alt="wd" width="32" height="32"> **wd**
 
-## 开发与发行状态
+## 版本与开源说明
 
-- 当前兼容关系与发行状态：[FQGate 集成信息](./fqgate/README.md)
+- 版本兼容关系及下载校验信息：[FQGate 集成信息](./fqgate/README.md)
 - V2 版本说明：[RELEASE_NOTES.md](./RELEASE_NOTES.md)
 - 插件界面项目：[AI-plugins/ui-apps](./AI-plugins/ui-apps/README.md)
 
