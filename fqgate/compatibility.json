@@ -5,6 +5,11 @@
     "minimumVersion": "0.1.0",
     "maximumVersionExclusive": "0.2.0"
   },
+  "release": {
+    "repositoryUrl": "https://github.com/zhuyifang/fqgate-releases",
+    "stableManifestUrl": "https://raw.githubusercontent.com/zhuyifang/fqgate-releases/main/releases/stable.json",
+    "tagPrefix": "fqgate-v"
+  },
   "mcp": {
     "defaultUrl": "http://127.0.0.1:17281/mcp",
     "supportedProtocolVersions": [

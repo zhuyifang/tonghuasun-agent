@@ -266,6 +266,13 @@ export async function probeFqgate(mcpUrl, { timeoutMs = 3_000, fetchImpl = globa
   return result;
 }
 
+export function isFqgateReady(probe, expectedVersion = null) {
+  if (probe?.mcpReachable !== true || !Number.isInteger(probe.toolCount) || probe.toolCount <= 0) {
+    return false;
+  }
+  return !expectedVersion || probe.serverVersion === expectedVersion;
+}
+
 export function parseBoolean(value) {
   return /^(1|true|yes|on|structured-json)$/i.test(String(value || "").trim());
 }

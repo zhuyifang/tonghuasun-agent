@@ -14,20 +14,25 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -Uninstall
 
 ## FQGate 主程序
 
-本机未安装 FQGate 时，应从 [Gitee FQGate 发行页](https://gitee.com/qicuo/tonghuasun-agent/releases/tag/fqgate-v0.1.0)下载主程序；Gitee 不可用时使用 [GitHub FQGate 发行页](https://github.com/zhuyifang/tonghuasun-agent/releases/tag/fqgate-v0.1.0)。版本、文件名、大小和 SHA-256 必须以 [FQGate 稳定发行清单](https://gitee.com/qicuo/tonghuasun-agent/raw/main/fqgate/releases/stable.json)为准。主包直链为 `https://gitee.com/qicuo/tonghuasun-agent/releases/download/fqgate-v<version>/<fileName>`，备用直链为 `https://github.com/zhuyifang/tonghuasun-agent/releases/download/fqgate-v<version>/<fileName>`；不要让用户自行寻找或猜测下载地址。
+FQGate 主程序从 [FQGate 官方下载页](https://github.com/zhuyifang/fqgate-releases/releases/tag/fqgate-v0.1.0)获取。AI 安装时，先读取 [FQGate 稳定版清单](https://raw.githubusercontent.com/zhuyifang/fqgate-releases/main/releases/stable.json)，按当前系统选择文件并核对大小和 SHA-256。直接下载地址为 `https://github.com/zhuyifang/fqgate-releases/releases/download/fqgate-v<version>/<fileName>`。
+
+安装完成后，为 FQGate 创建一个桌面快捷方式，方便以后启动。安装结束前，确认 FQGate 已经启动、名为 `fqgate` 的连接已经成功，并且能够读取工具列表或完成健康检查。
+
+Windows 用户可以在仓库根目录运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\runtime\install-fqgate.ps1`；使用已经解压的插件安装包时，运行 `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-fqgate.ps1`。命令会完成正式版下载、校验、固定目录安装、快捷方式创建、启动和连接检查。
 
 ## 安装
 
-1. 按上面的正式路径下载、校验并启动兼容的 FQGate `0.1.x`，并至少进入过一次千问“工作任务”；本机已有兼容版本时直接复用。
-2. 解压千问安装包并运行：
+1. 先进入一次千问“工作任务”，再解压千问安装包并运行：
 
    ```powershell
-   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1 -FQGatePath "<fqgate.exe 路径>"
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\setup.ps1
    ```
 
-3. 等待千问重新加载工具后新建工作任务，确认 `fqgate` MCP 已连接。
+   这条命令会安装并启动 FQGate，再安装千问技能和连接。本机已有相同正式版本时会直接复用。
 
-安装器只会写入“同花顺免费实时数据代理”和“同花顺实盘交易代理”两个技能，以及一个 FQGate MCP 入口；不会复制或修改 FQGate。重复运行同一版本不会覆盖用户创建的同名技能或 MCP 配置。
+2. 等待千问重新加载工具后新建工作任务，确认 `fqgate` MCP 已连接。
+
+千问中只会出现“同花顺免费实时数据代理”和“同花顺实盘交易代理”两个技能，以及一个 FQGate MCP 入口。重复运行同一版本会直接复用已有文件。
 
 千问入口启用结构化结果文字兼容模式。持续订阅需使用 FQGate 原生 WebSocket/SSE，不把一次快照描述成持续盯盘。
 

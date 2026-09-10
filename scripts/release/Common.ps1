@@ -61,6 +61,7 @@ function Assert-Package(
     foreach ($requiredPath in @(
         "scripts\fqgate-config.mjs",
         "scripts\configure-fqgate.mjs",
+        "scripts\install-fqgate.ps1",
         "scripts\launch-fqgate-mcp.mjs",
         "skills\fqgate-realtime-stock-analyzer\SKILL.md",
         "skills\trade-execution\SKILL.md",

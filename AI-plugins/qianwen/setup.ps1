@@ -36,7 +36,12 @@ if (-not (Test-Path -LiteralPath $configurePath -PathType Leaf)) {
     throw "安装包不完整，缺少：$configurePath"
 }
 $nodePath = Get-QianwenNodePath
-$configureArguments = @($configurePath, "configure", "--mcp-url", $McpUrl, "--json")
+$fqgateInstallerPath = Join-Path $PSScriptRoot "scripts\install-fqgate.ps1"
+if ([string]::IsNullOrWhiteSpace($FQGatePath)) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $fqgateInstallerPath -McpUrl $McpUrl
+    if ($LASTEXITCODE -ne 0) { throw "FQGate 主程序安装或连接失败。" }
+}
+$configureArguments = @($configurePath, "configure", "--mcp-url", $McpUrl, "--require-ready", "--json")
 if (-not [string]::IsNullOrWhiteSpace($FQGatePath)) {
     $configureArguments += @("--fqgate-path", $FQGatePath)
 }
@@ -48,4 +53,4 @@ if ($LASTEXITCODE -ne 0) {
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installerPath
 if ($LASTEXITCODE -ne 0) { throw "千问入口安装失败。" }
 
-Write-Output "安装完成。请先启动 FQGate，再在千问中新建工作任务验证。"
+Write-Output "安装完成。FQGate 已连接；请在千问中新建工作任务验证。"

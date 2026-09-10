@@ -2,6 +2,22 @@
 
 > 面向 Codex、Claude Code、WorkBuddy、ZCode、OpenClaw、DeepSeek Harness、豆包和千问的本机 A 股行情、量化数据与交易插件
 
+---
+
+## 🚀🚀🚀 一句话安装｜复制后发给 AI 🚀🚀🚀
+
+> ⭐⭐⭐ **复制下面这句话，发送给你正在使用的 AI 助手** ⭐⭐⭐
+
+```text
+安装并配置同花顺免费开源AI插件FQGate：https://gitee.com/qicuo/tonghuasun-agent.git
+```
+
+### 👆👆👆 复制上面这句话即可开始安装 👆👆👆
+
+> ✅ 自动选择对应安装方式　✅ 安装 FQGate 正式版　✅ 安装 AI 插件　✅ 检查连接
+
+---
+
 ### 数据来自同花顺，响应更快、运行更稳定
 
 通过这个插件，你可以在常用 AI 助手中直接查询 A 股实时行情、分时、K 线、Level-2 逐笔数据、资讯公告、证券资料、账户资产、持仓、委托和成交数据，也可以在明确确认后执行交易操作。
@@ -12,28 +28,33 @@
 
 这是一个由独立开发者维护的非官方项目，与同花顺及其关联公司不存在授权、合作或背书关系。插件不会增加任何行情、账户或交易权限，你能看到的数据和能使用的功能仍以当前账户及相应服务权限为准。
 
-> **当前插件版本为 `0.3.0`，兼容 FQGate `0.1.x`。** 正式安装包可从 GitHub 或 Gitee 发行页面下载，并提供 SHA-256 校验信息供你核对。
+> **当前插件版本为 `0.3.0`，兼容 FQGate `0.1.x`。** AI 插件安装包可以从 GitHub 或 Gitee 下载；FQGate 主程序请从下方的官方下载页获取。
 
 ## 项目地址
 
 - 国内仓库：[Gitee](https://gitee.com/qicuo/tonghuasun-agent)
 - GitHub 仓库：[GitHub](https://github.com/zhuyifang/tonghuasun-agent)
 
-## 一句话安装
+## 安装说明
 
-在你正在使用的 AI 助手中直接发送：
-
-> 安装并配置同花顺免费开源AI插件FQGate，项目地址：<https://gitee.com/qicuo/tonghuasun-agent.git>。
-
-如果你是 AI 助手，请先识别当前使用的 AI 工具，再打开下方对应的安装说明并严格执行。不要要求用户自行寻找 FQGate 主程序，也不要混用其他 AI 工具的安装步骤。
+如果你是 AI 助手，请先识别当前使用的 AI 工具，再打开下方对应的安装说明，完成主程序、插件和连接配置。
 
 ### FQGate 主程序下载
 
-- 国内下载：[Gitee FQGate 发行页](https://gitee.com/qicuo/tonghuasun-agent/releases/tag/fqgate-v0.1.0)
-- 备用下载：[GitHub FQGate 发行页](https://github.com/zhuyifang/tonghuasun-agent/releases/tag/fqgate-v0.1.0)
-- 当前版本、文件名、大小和 SHA-256：[FQGate 稳定发行清单](./fqgate/releases/stable.json)
+- 官方下载：[FQGate 正式发行页](https://github.com/zhuyifang/fqgate-releases/releases/tag/fqgate-v0.1.0)
+- 当前版本、文件名、大小和 SHA-256：[FQGate 稳定版清单](https://raw.githubusercontent.com/zhuyifang/fqgate-releases/main/releases/stable.json)
 
-AI 助手应从稳定发行清单读取 `version` 和当前系统对应的 `packages[].fileName`，下载后核对文件大小与 SHA-256。直接下载地址固定为 `https://gitee.com/qicuo/tonghuasun-agent/releases/download/fqgate-v<version>/<fileName>`，Gitee 不可用时改用 `https://github.com/zhuyifang/tonghuasun-agent/releases/download/fqgate-v<version>/<fileName>`。
+让 AI 帮你安装时，AI 应先查看稳定版清单，再下载适合当前电脑的文件。直接下载地址是 `https://github.com/zhuyifang/fqgate-releases/releases/download/fqgate-v<version>/<fileName>`，下载后核对文件大小和 SHA-256。
+
+Windows 用户可以直接运行一条命令：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\runtime\install-fqgate.ps1
+```
+
+这条命令会读取正式版清单，下载并校验 FQGate，把程序放到当前用户的应用目录，创建桌面快捷方式，启动主程序并检查连接。使用已经解压的插件安装包时，把脚本路径换成 `.\scripts\install-fqgate.ps1`。
+
+安装结束前，AI 应确认 FQGate 已经启动、名为 `fqgate` 的连接已经成功，并且能够读取工具列表或完成健康检查。如果连接尚未成功，应直接告诉用户“插件文件已安装，但 FQGate 尚未连接”。
 
 AI 助手会根据你使用的工具选择对应的正式安装包并完成配置。自动安装失败时，可以前往 [GitHub 发行页面](https://github.com/zhuyifang/tonghuasun-agent/releases) 或 [Gitee 发行页面](https://gitee.com/qicuo/tonghuasun-agent/releases) 手动下载。
 

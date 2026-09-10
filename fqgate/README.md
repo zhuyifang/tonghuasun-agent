@@ -1,20 +1,27 @@
-# FQGate 公开集成信息
+# FQGate 下载与插件配套信息
 
-本目录只记录 AI 插件所兼容的 FQGate 版本、公开发行地址和校验信息，不包含 FQGate 私有源码、调试符号、密钥或本机数据。
+FQGate 主程序和 AI 插件是两个不同的产品，版本号也各自管理：
 
-当前 V2 插件代码兼容 FQGate `0.1.x`，默认连接 `http://127.0.0.1:17281/mcp`。准确关系见 [compatibility.json](./compatibility.json)。
+- FQGate 主程序从 [FQGate 官方发行仓库](https://github.com/zhuyifang/fqgate-releases)下载。
+- Codex、Claude Code、WorkBuddy、豆包等 AI 插件从当前仓库下载。
 
-## 当前发行状态
+## 下载 FQGate
 
-`compatibility.json` 中的 `release.status` 目前是 `unpublished`，表示 FQGate `0.1.0` 的公开安装包地址和 SHA-256 尚未登记。因此，现阶段只能在开发机上通过 `--fqgate-path` 指定已经构建的 FQGate 可执行文件；不能把本目录描述成可供终端用户下载的正式版本。
+- 正式发行页：[FQGate v0.1.0](https://github.com/zhuyifang/fqgate-releases/releases/tag/fqgate-v0.1.0)
+- 当前稳定版的文件名、大小和 SHA-256：[稳定版清单](https://raw.githubusercontent.com/zhuyifang/fqgate-releases/main/releases/stable.json)
 
-正式发布时，应为 Windows x64、macOS arm64 和 macOS x64 分别登记以下信息：
+Windows 用户在仓库根目录运行下面这条命令即可：
 
-- 发行文件名；
-- 指向明确 FQGate 版本标签的下载地址，不能使用会漂移到其他组件的 `releases/latest`；
-- 文件大小和 SHA-256；
-- 目标平台的实机验收状态。
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\installer\runtime\install-fqgate.ps1
+```
 
-大型二进制文件只放在公开仓库 Release 中，不提交到 Git。FQGate 与 Agent 插件继续独立管理版本。
+它会根据稳定版清单下载并校验 FQGate，把程序放到当前用户的应用目录，创建桌面快捷方式，启动主程序并检查连接。使用已经解压的插件安装包时，把脚本路径换成 `.\scripts\install-fqgate.ps1`。
 
-版本说明、稳定通道清单和自动更新的发布步骤见 [FQGate 发布与更新规范](./发布规范.md)。
+## 当前配套版本
+
+当前插件版本为 `0.3.0`，支持 FQGate `0.1.x`。详细版本范围见 [compatibility.json](./compatibility.json)。
+
+FQGate 默认连接地址为 `http://127.0.0.1:17281/mcp`。只有 FQGate 已经启动、AI 工具中的 `fqgate` 连接成功，并且能够读取工具列表或完成健康检查，才算安装完成。只安装技能文件不算完成。
+
+本目录不再保存 FQGate 发行清单的副本，避免副本没有及时更新，导致 AI 把已经发布的版本误判为“尚未发布”。

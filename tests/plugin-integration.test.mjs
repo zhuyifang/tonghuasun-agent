@@ -49,6 +49,7 @@ test("面向 Windows 用户的 PowerShell 脚本使用 UTF-8 BOM", () => {
     ["scripts", "Build-AgentPlugins.ps1"],
     ["scripts", "Sync-FqgateUiApps.ps1"],
     ["scripts", "release", "Common.ps1"],
+    ["installer", "runtime", "install-fqgate.ps1"],
     ["AI-plugins", "doubao", "setup.ps1"],
     ["AI-plugins", "doubao", "install.ps1"],
     ["AI-plugins", "qianwen", "setup.ps1"],
@@ -182,19 +183,65 @@ test("README 和插件清单保留原名称并覆盖核心检索词", () => {
   }
 });
 
-test("八个宿主安装说明都给出 FQGate 主程序发行路径", () => {
+test("八个 AI 工具只使用 FQGate 官方发行仓库", () => {
+  const releaseRepository = "https://github.com/zhuyifang/fqgate-releases";
+  const stableManifest = `${releaseRepository.replace("github.com", "raw.githubusercontent.com")}/main/releases/stable.json`;
+  const releasePage = `${releaseRepository}/releases/tag/fqgate-v0.1.0`;
+  const downloadTemplate = `${releaseRepository}/releases/download/fqgate-v<version>/<fileName>`;
+
+  assert.equal(compatibility.release.repositoryUrl, releaseRepository);
+  assert.equal(compatibility.release.stableManifestUrl, stableManifest);
+  assert.equal(compatibility.release.tagPrefix, "fqgate-v");
+
   for (const [adapter] of manifests) {
     const readme = readText("AI-plugins", adapter, "README.md");
-    assert.match(readme, /releases\/tag\/fqgate-v0\.1\.0/, `${adapter} 缺少 FQGate 主程序发行页`);
-    assert.match(readme, /fqgate\/releases\/stable\.json/, `${adapter} 缺少 FQGate 稳定发行清单`);
-    assert.match(readme, /releases\/download\/fqgate-v<version>\/<fileName>/, `${adapter} 缺少 FQGate 主包直链`);
+    assert.ok(readme.includes(releasePage), `${adapter} 缺少 FQGate 官方下载页`);
+    assert.ok(readme.includes(stableManifest), `${adapter} 缺少 FQGate 官方稳定版清单`);
+    assert.ok(readme.includes(downloadTemplate), `${adapter} 缺少 FQGate 官方下载地址`);
     assert.match(readme, /SHA-256/, `${adapter} 缺少主程序校验要求`);
-    assert.match(readme, /不要让用户自行寻找或猜测下载地址/, `${adapter} 缺少 AI 下载规则`);
+    assert.match(readme, /创建一个桌面快捷方式/, `${adapter} 缺少桌面快捷方式提醒`);
+    assert.match(readme, /安装结束前，确认 FQGate 已经启动.*读取工具列表或完成健康检查/, `${adapter} 缺少安装验收条件`);
+    assert.doesNotMatch(
+      readme,
+      /(?:github\.com\/zhuyifang|gitee\.com\/qicuo)\/tonghuasun-agent\/(?:releases\/(?:tag|download)\/fqgate-v|raw\/main\/fqgate\/releases)/,
+      `${adapter} 仍在使用插件仓库下载 FQGate`
+    );
   }
 
   const rootReadme = readText("README.md");
   assert.match(rootReadme, /FQGate 主程序下载/);
-  assert.match(rootReadme, /releases\/download\/fqgate-v<version>\/<fileName>/);
+  assert.ok(rootReadme.includes(releasePage));
+  assert.ok(rootReadme.includes(stableManifest));
+  assert.ok(rootReadme.includes(downloadTemplate));
+  assert.match(rootReadme, /创建(?:一个)?桌面快捷方式/);
+  assert.match(rootReadme, /安装结束前，AI 应确认 FQGate 已经启动.*读取工具列表或完成健康检查/s);
+  assert.equal(existsSync(pathInRepository("fqgate", "releases", "stable.json")), false);
+  assert.equal(existsSync(pathInRepository("fqgate", "releases", "0.1.0.json")), false);
+});
+
+test("Windows 自动安装使用正式包并在连接验收后才结束", () => {
+  const installer = readText("installer", "runtime", "install-fqgate.ps1");
+  assert.match(installer, /compatibility\.release\.stableManifestUrl/);
+  assert.match(installer, /Get-FileHash[\s\S]*SHA256/);
+  assert.match(installer, /Join-Path \$env:LOCALAPPDATA "FQGate"/);
+  assert.match(installer, /CreateShortcut/);
+  assert.match(installer, /Start-Process -FilePath \$executablePath/);
+  assert.match(installer, /--require-ready/);
+  assert.match(installer, /安装完成：FQGate/);
+
+  const releaseHelpers = readText("scripts", "release", "Common.ps1");
+  assert.match(releaseHelpers, /scripts\\install-fqgate\.ps1/);
+
+  for (const adapter of ["doubao", "qianwen"]) {
+    const setup = readText("AI-plugins", adapter, "setup.ps1");
+    assert.match(setup, /scripts\\install-fqgate\.ps1/);
+    assert.match(setup, /--require-ready/);
+  }
+
+  for (const [adapter] of manifests) {
+    const readme = readText("AI-plugins", adapter, "README.md");
+    assert.match(readme, /install-fqgate\.ps1/, `${adapter} 缺少 Windows 自动安装命令`);
+  }
 });
 
 test("八个宿主安装说明都要求先卸载旧版插件", () => {
@@ -258,7 +305,7 @@ test("MCP Apps 构建产物只交给 FQGate，不复制进 Codex 插件", () => 
 });
 
 test("正式发布清单、稳定通道和 Claude 市场保持一致", () => {
-  assert.equal(Object.hasOwn(compatibility, "release"), false);
+  assert.equal(Object.hasOwn(compatibility, "release"), true);
   const release = readJson("update", "releases", `${agentVersion}.json`);
   assert.equal(release.component, "fqgate-agent");
   assert.equal(release.version, agentVersion);

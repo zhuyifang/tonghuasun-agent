@@ -42,7 +42,12 @@ if (-not (Test-Path -LiteralPath $configurePath -PathType Leaf)) {
     throw "安装包不完整，缺少：$configurePath"
 }
 $nodePath = Get-DoubaoNodePath
-$configureArguments = @($configurePath, "configure", "--mcp-url", $McpUrl, "--json")
+$fqgateInstallerPath = Join-Path $PSScriptRoot "scripts\install-fqgate.ps1"
+if ([string]::IsNullOrWhiteSpace($FQGatePath)) {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $fqgateInstallerPath -McpUrl $McpUrl
+    if ($LASTEXITCODE -ne 0) { throw "FQGate 主程序安装或连接失败。" }
+}
+$configureArguments = @($configurePath, "configure", "--mcp-url", $McpUrl, "--require-ready", "--json")
 if (-not [string]::IsNullOrWhiteSpace($FQGatePath)) {
     $configureArguments += @("--fqgate-path", $FQGatePath)
 }
@@ -54,4 +59,4 @@ if ($LASTEXITCODE -ne 0) {
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installerPath
 if ($LASTEXITCODE -ne 0) { throw "豆包技能安装失败。" }
 
-Write-Output "安装完成。请启动 FQGate，并在豆包工作任务中选中同花顺免费开源AI插件FQGate和连接器。"
+Write-Output "安装完成。FQGate 已连接；请在豆包工作任务中选中同花顺免费开源AI插件FQGate和连接器。"

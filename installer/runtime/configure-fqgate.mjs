@@ -6,6 +6,7 @@ import {
   configPathFor,
   discoverExecutable,
   formatError,
+  isFqgateReady,
   probeFqgate,
   readCompatibilityManifest,
   readConfig,
@@ -52,6 +53,7 @@ async function main() {
     const config = writeConfig({ executablePath, mcpUrl, fqgateVersion }, configPath);
     const probe = await probeFqgate(mcpUrl);
     print({ command: "configure", configPath, configured: true, ...config, ...probe }, options.json);
+    assertReadyWhenRequired(options, probe, fqgateVersion);
     return;
   }
 
@@ -72,6 +74,7 @@ async function main() {
     mcpUrl,
     ...probe
   }, options.json);
+  assertReadyWhenRequired(options, probe, fqgateVersion);
 }
 
 function isCompatible(version, compatibility) {
@@ -83,15 +86,22 @@ function isCompatible(version, compatibility) {
 }
 
 function parseArguments(args) {
-  const options = { command: "status", fqgatePath: null, mcpUrl: null, json: false };
+  const options = {
+    command: "status",
+    fqgatePath: null,
+    mcpUrl: null,
+    json: false,
+    requireReady: false
+  };
   if (args[0] && !args[0].startsWith("--")) options.command = args.shift();
   if (!new Set(["configure", "status", "uninstall"]).has(options.command)) {
     throw new Error(`未知命令：${options.command}`);
   }
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
-    if (argument === "--json") {
-      options.json = true;
+    if (argument === "--json" || argument === "--require-ready") {
+      if (argument === "--json") options.json = true;
+      else options.requireReady = true;
       continue;
     }
     const value = args[++index];
@@ -100,7 +110,15 @@ function parseArguments(args) {
     else if (argument === "--mcp-url") options.mcpUrl = value;
     else throw new Error(`未知参数：${argument}`);
   }
+  if (options.command === "uninstall" && options.requireReady) {
+    throw new Error("卸载时不能使用 --require-ready。");
+  }
   return options;
+}
+
+function assertReadyWhenRequired(options, probe, expectedVersion) {
+  if (!options.requireReady || isFqgateReady(probe, expectedVersion)) return;
+  throw new Error("FQGate 还没有连接成功。请确认主程序已经启动并完成首次使用确认，然后重试。");
 }
 
 function print(value, json) {

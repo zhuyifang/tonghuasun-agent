@@ -5,6 +5,8 @@
 # Node.js 生成物
 **/node_modules/
 **/dist/
+**/.playwright-cli/
+**/output/playwright/
 
 # .NET 生成物
 **/bin/

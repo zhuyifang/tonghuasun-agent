@@ -7,6 +7,7 @@ import {
   assertFqgateVersionCompatible,
   configPathFor,
   discoverExecutable,
+  isFqgateReady,
   probeFqgate,
   readCompatibilityManifest,
   readConfig,
@@ -110,6 +111,19 @@ test("状态探针统计全部 MCP 工具分页", async () => {
   assert.equal(result.serverVersion, "0.1.0");
   assert.equal(result.toolCount, 2);
   assert.equal(calls.length, 4);
+});
+
+test("安装验收必须同时匹配连接、工具和正在运行的版本", () => {
+  const ready = {
+    mcpReachable: true,
+    serverVersion: "0.1.0",
+    toolCount: 108
+  };
+  assert.equal(isFqgateReady(ready), true);
+  assert.equal(isFqgateReady(ready, "0.1.0"), true);
+  assert.equal(isFqgateReady({ ...ready, toolCount: 0 }, "0.1.0"), false);
+  assert.equal(isFqgateReady({ ...ready, mcpReachable: false }, "0.1.0"), false);
+  assert.equal(isFqgateReady(ready, "0.1.1"), false);
 });
 
 function jsonResponse(value) {
