@@ -41,7 +41,7 @@
 
 ### FQGate 主程序下载
 
-- 官方下载：[FQGate 正式发行页](https://github.com/zhuyifang/fqgate-releases/releases/tag/fqgate-v0.1.0)
+- 官方下载：[FQGate 正式发行页](https://github.com/zhuyifang/fqgate-releases/releases)
 - 当前版本、文件名、大小和 SHA-256：[FQGate 稳定版清单](https://raw.githubusercontent.com/zhuyifang/fqgate-releases/main/releases/stable.json)
 
 让 AI 帮你安装时，AI 应先查看稳定版清单，再下载适合当前电脑的文件。直接下载地址是 `https://github.com/zhuyifang/fqgate-releases/releases/download/fqgate-v<version>/<fileName>`，下载后核对文件大小和 SHA-256。

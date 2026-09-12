@@ -32,8 +32,17 @@ function readJson(...segments) {
   return JSON.parse(readText(...segments));
 }
 
+function compareVersions(left, right) {
+  const leftParts = left.split(".").map(Number);
+  const rightParts = right.split(".").map(Number);
+  for (let index = 0; index < 3; index += 1) {
+    if (leftParts[index] !== rightParts[index]) return leftParts[index] - rightParts[index];
+  }
+  return 0;
+}
+
 test("八个适配器与兼容清单使用同一 Agent 版本", () => {
-  assert.equal(agentVersion, "0.3.0");
+  assert.match(agentVersion, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
   assert.equal(compatibility.fqgate.minimumVersion, "0.1.0");
   assert.equal(compatibility.fqgate.maximumVersionExclusive, "0.2.0");
 
@@ -187,7 +196,7 @@ test("八个 AI 工具只使用 FQGate 官方发行仓库", () => {
   const releaseRepository = "https://github.com/zhuyifang/fqgate-releases";
   const agentReleasePage = "https://github.com/zhuyifang/tonghuasun-agent/releases";
   const stableManifest = `${releaseRepository.replace("github.com", "raw.githubusercontent.com")}/main/releases/stable.json`;
-  const releasePage = `${releaseRepository}/releases/tag/fqgate-v0.1.0`;
+  const releasePage = `${releaseRepository}/releases`;
   const downloadTemplate = `${releaseRepository}/releases/download/fqgate-v<version>/<fileName>`;
 
   assert.equal(compatibility.release.repositoryUrl, releaseRepository);
@@ -318,31 +327,37 @@ test("MCP Apps 构建产物只交给 FQGate，不复制进 Codex 插件", () => 
   assert.doesNotMatch(commonPackage, /assets\\mcp-apps/i);
 });
 
-test("正式发布清单、稳定通道和 Claude 市场保持一致", () => {
+test("候选发行清单完整，稳定通道和 Claude 市场始终保持一致", () => {
   assert.equal(Object.hasOwn(compatibility, "release"), true);
   const release = readJson("update", "releases", `${agentVersion}.json`);
   assert.equal(release.component, "fqgate-agent");
   assert.equal(release.version, agentVersion);
   assert.equal(release.packages.length, 9);
   for (const releasePackage of release.packages) {
-    assert.match(releasePackage.fileName, /0\.3\.0\.(zip|tgz)$/);
+    assert.match(releasePackage.fileName, new RegExp(`${agentVersion.replaceAll(".", "\\.")}\\.(zip|tgz)$`));
     assert.ok(Number.isInteger(releasePackage.size) && releasePackage.size > 0);
     assert.match(releasePackage.sha256, /^[a-f0-9]{64}$/);
   }
 
   const stable = readJson("update", "stable.json");
+  assert.match(stable.latestVersion, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
+  assert.ok(compareVersions(stable.latestVersion, agentVersion) <= 0, "稳定版不能高于源码候选版本");
+  const stableRelease = readJson("update", "releases", `${stable.latestVersion}.json`);
   const claudeMarketplace = readJson(".claude-plugin", "marketplace.json");
-  assert.equal(stable.latestVersion, agentVersion);
   assert.equal(claudeMarketplace.plugins[0].version, stable.latestVersion);
   assert.equal(claudeMarketplace.plugins[0].name, "fqgate-agent");
-  assert.match(claudeMarketplace.plugins[0].source.url, /fqgate-agent-claude-code-0\.3\.0\.zip$/);
+  assert.ok(
+    claudeMarketplace.plugins[0].source.url.endsWith(
+      `fqgate-agent-claude-code-${stable.latestVersion}.zip`
+    )
+  );
   assert.equal(
     claudeMarketplace.plugins[0].source.sha256,
-    release.packages.find((item) => item.adapter === "claude-code").sha256
+    stableRelease.packages.find((item) => item.adapter === "claude-code").sha256
   );
 
   const claudeReadme = readText("AI-plugins", "claude-code", "README.md");
-  assert.doesNotMatch(claudeReadme, /0\.3\.0` 尚未发布|仍指向已发布的旧版/);
+  assert.doesNotMatch(claudeReadme, new RegExp(`${agentVersion.replaceAll(".", "\\.")}\` 尚未发布|仍指向已发布的旧版`));
   assert.match(claudeReadme, /\/plugin marketplace add zhuyifang\/tonghuasun-agent/);
   assert.match(claudeReadme, /\/plugin install fqgate-agent@tonghuasun-agent/);
 });
@@ -363,7 +378,11 @@ test("WorkBuddy 正式包本身就是可安装的插件市场", () => {
   assert.match(buildScript, /name = "fqgate-official"/);
   assert.match(buildScript, /Compress-PackageContents \$marketplaceRoot/);
   assert.match(releaseHelpers, /function Compress-PackageContents/);
-  assert.match(readme, /plugin marketplace add \.\\fqgate-agent-workbuddy-0\.3\.0\.zip --name fqgate-official/);
+  assert.ok(
+    readme.includes(
+      `plugin marketplace add .\\fqgate-agent-workbuddy-${agentVersion}.zip --name fqgate-official`
+    )
+  );
   assert.match(readme, /plugin install fqgate-agent@fqgate-official/);
   assert.match(readme, /发行包本身就是正式插件市场/);
 });

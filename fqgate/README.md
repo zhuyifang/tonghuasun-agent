@@ -11,7 +11,7 @@ FQGate 主程序和 AI 插件是两个不同的产品，版本号也各自管理
 
 ## 下载 FQGate
 
-- 正式发行页：[FQGate v0.1.0](https://github.com/zhuyifang/fqgate-releases/releases/tag/fqgate-v0.1.0)
+- 正式发行页：[FQGate 官方下载页](https://github.com/zhuyifang/fqgate-releases/releases)
 - 当前稳定版的文件名、大小和 SHA-256：[稳定版清单](https://raw.githubusercontent.com/zhuyifang/fqgate-releases/main/releases/stable.json)
 
 Windows 用户在仓库根目录运行下面这条命令即可：
