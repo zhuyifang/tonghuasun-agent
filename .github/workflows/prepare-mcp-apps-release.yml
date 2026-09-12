@@ -70,5 +70,5 @@ jobs:
           git add AI-plugins/ui-apps/mcp-apps/apps.json fqgate/mcp-apps
           git commit -m "准备 MCP Apps ${{ inputs.version }} 发布"
           git push --set-upstream origin "$branch"
-          gh pr create --base main --head "$branch" --title "准备 MCP Apps ${{ inputs.version }} 发布" --body "已经完成 UI 构建、Ed25519 正式签名和公钥验签。合并后 GitHub 稳定通道将切换到该版本；Gitee 镜像仍需独立同步。"
+          gh pr create --base main --head "$branch" --title "准备 MCP Apps ${{ inputs.version }} 发布" --body "已经完成 UI 构建、Ed25519 正式签名和公钥验签。合并且主分支 CI 成功后，GitHub 稳定通道生效，并自动把同一提交同步到 Gitee。"
           gh workflow run ci.yml --ref "$branch"

@@ -93,7 +93,10 @@ async function buildRelease(version, artifactsDirectory, status, publishedAtUtc)
     status,
     version,
     publishedAtUtc,
-    releaseUrls: { github: `https://github.com/zhuyifang/tonghuasun-agent/releases/tag/v${version}` },
+    releaseUrls: {
+      github: `https://github.com/zhuyifang/tonghuasun-agent/releases/tag/v${version}`,
+      gitee: `https://gitee.com/qicuo/tonghuasun-agent/releases/tag/v${version}`
+    },
     releaseNotes: await readReleaseNotes(version),
     packages
   };

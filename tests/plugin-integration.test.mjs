@@ -341,6 +341,8 @@ test("候选发行清单完整，稳定通道和 Claude 市场始终保持一致
 
   const stable = readJson("update", "stable.json");
   assert.match(stable.latestVersion, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/);
+  assert.match(stable.releaseUrls.github, /github\.com\/zhuyifang\/tonghuasun-agent\/releases\/tag\/v/);
+  assert.match(stable.releaseUrls.gitee, /gitee\.com\/qicuo\/tonghuasun-agent\/releases\/tag\/v/);
   assert.ok(compareVersions(stable.latestVersion, agentVersion) <= 0, "稳定版不能高于源码候选版本");
   const stableRelease = readJson("update", "releases", `${stable.latestVersion}.json`);
   const claudeMarketplace = readJson(".claude-plugin", "marketplace.json");
@@ -368,6 +370,17 @@ test("Agent 正式构建不依赖 FQGate 的发布状态", () => {
   assert.doesNotMatch(buildScript, /FQGate 发行清单尚未发布/);
   assert.match(buildScript, /build_mode=/);
   assert.match(buildScript, /SHA256SUMS\.txt/);
+});
+
+test("Gitee 只在 GitHub 主分支 CI 成功后执行安全镜像", () => {
+  const workflow = readText(".github", "workflows", "sync-gitee.yml");
+  const metadataScript = readText("scripts", "release", "update-agent-release-metadata.mjs");
+  assert.match(workflow, /workflow_run\.event == 'push'/);
+  assert.match(workflow, /workflow_run\.head_repository\.full_name == github\.repository/);
+  assert.match(workflow, /git merge-base --is-ancestor/);
+  assert.doesNotMatch(workflow, /git push[^\n]*(?:--force|-f(?:\s|$))/);
+  assert.match(workflow, /pending_agent_release=true/);
+  assert.match(metadataScript, /gitee\.com\/qicuo\/tonghuasun-agent\/releases\/tag\/v/);
 });
 
 test("WorkBuddy 正式包本身就是可安装的插件市场", () => {

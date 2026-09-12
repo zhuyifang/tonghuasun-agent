@@ -1,0 +1,151 @@
+name: 同步发布到 Gitee
+
+on:
+  workflow_run:
+    workflows: [Agent 插件持续集成]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      agent_version:
+        description: 恢复同步指定 Agent Release；留空时只同步仓库
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tonghuasun-agent-gitee-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: 验证并同步 Gitee
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    environment: gitee-production
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+      GITEE_REPOSITORY: qicuo/tonghuasun-agent
+    steps:
+      - name: 检出已通过 CI 的主分支提交
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || 'main' }}
+          fetch-depth: 0
+      - name: 准备 Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+      - name: 准备 Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: '3.13'
+      - name: 校验 MCP Apps 稳定目录并识别 Agent Release
+        id: release
+        env:
+          REQUESTED_AGENT_VERSION: ${{ inputs.agent_version }}
+        run: |
+          if git rev-parse HEAD^1 >/dev/null 2>&1; then
+            git diff --name-only HEAD^1 HEAD > "$RUNNER_TEMP/changed-files.txt"
+          else
+            git ls-tree -r --name-only HEAD > "$RUNNER_TEMP/changed-files.txt"
+          fi
+          agent_version="$REQUESTED_AGENT_VERSION"
+          if [ -z "$agent_version" ] && grep -qx 'update/stable.json' "$RUNNER_TEMP/changed-files.txt"; then
+            agent_version="$(node -p "require('./update/stable.json').latestVersion")"
+          fi
+          if [ -n "$agent_version" ] && ! printf '%s' "$agent_version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'; then
+            echo "::error::Agent 版本号无效：$agent_version"
+            exit 1
+          fi
+
+          pending_agent_release=false
+          if grep -qx 'fqgate/compatibility.json' "$RUNNER_TEMP/changed-files.txt"; then
+            candidate_version="$(node -p "require('./fqgate/compatibility.json').agentVersion")"
+            stable_version="$(node -p "require('./update/stable.json').latestVersion")"
+            if [ "$candidate_version" != "$stable_version" ]; then
+              pending_agent_release=true
+              agent_version=""
+              echo "Agent $candidate_version 尚未在 GitHub 正式发布，本次不提前同步 Gitee。"
+            fi
+          fi
+          echo "agent_version=$agent_version" >> "$GITHUB_OUTPUT"
+          echo "target_commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "skip_sync=$pending_agent_release" >> "$GITHUB_OUTPUT"
+      - name: 校验 MCP Apps 稳定目录
+        if: steps.release.outputs.skip_sync != 'true'
+        run: |
+          mcp_apps_version="$(node -p "require('./fqgate/mcp-apps/stable.json').bundleVersion")"
+          node AI-plugins/ui-apps/scripts/verify-mcp-apps-release.mjs \
+            --release-root fqgate/mcp-apps \
+            --public-key-file fqgate/mcp-apps/mcp-apps-ed25519-public.pem \
+            --version "$mcp_apps_version"
+      - name: 下载并校验 GitHub Agent Release
+        if: steps.release.outputs.skip_sync != 'true' && steps.release.outputs.agent_version != ''
+        env:
+          AGENT_VERSION: ${{ steps.release.outputs.agent_version }}
+        run: |
+          mkdir -p artifacts
+          gh release view "v$AGENT_VERSION" --repo "$GITHUB_REPOSITORY" --json isDraft,isPrerelease,publishedAt >/tmp/github-release.json
+          node -e "const value=require('/tmp/github-release.json'); if(value.isDraft||value.isPrerelease||!value.publishedAt) process.exit(1)"
+          gh release download "v$AGENT_VERSION" --repo "$GITHUB_REPOSITORY" --dir artifacts --pattern 'fqgate-agent-*'
+          python scripts/release/sync_gitee_release.py verify \
+            --version "$AGENT_VERSION" \
+            --manifest "update/releases/$AGENT_VERSION.json" \
+            --artifacts artifacts
+          git rev-parse "refs/tags/v$AGENT_VERSION^{}" >/dev/null
+      - name: 确认 Gitee 主分支可以快进
+        if: steps.release.outputs.skip_sync != 'true'
+        env:
+          TARGET_COMMIT: ${{ steps.release.outputs.target_commit }}
+        run: |
+          git fetch --no-tags "https://gitee.com/$GITEE_REPOSITORY.git" main:refs/remotes/gitee/main
+          if ! git merge-base --is-ancestor refs/remotes/gitee/main "$TARGET_COMMIT"; then
+            echo "::error::Gitee main 包含 GitHub main 没有的提交，拒绝覆盖"
+            exit 1
+          fi
+      - name: 推送已验证提交和发行标签到 Gitee
+        if: steps.release.outputs.skip_sync != 'true'
+        env:
+          AGENT_VERSION: ${{ steps.release.outputs.agent_version }}
+          TARGET_COMMIT: ${{ steps.release.outputs.target_commit }}
+          GITEE_USERNAME: qicuo
+        run: |
+          if [ -z "$GITEE_TOKEN" ]; then
+            echo "::error::gitee-production 缺少 GITEE_TOKEN"
+            exit 1
+          fi
+          askpass="$RUNNER_TEMP/gitee-askpass.sh"
+          printf '%s\n' '#!/usr/bin/env sh' \
+            'case "$1" in' \
+            '*Username*) printf "%s\\n" "$GITEE_USERNAME" ;;' \
+            '*Password*) printf "%s\\n" "$GITEE_TOKEN" ;;' \
+            'esac' > "$askpass"
+          chmod 700 "$askpass"
+          export GIT_ASKPASS="$askpass"
+          export GIT_ASKPASS_REQUIRE=force
+          export GIT_TERMINAL_PROMPT=0
+          git push "https://gitee.com/$GITEE_REPOSITORY.git" "$TARGET_COMMIT:refs/heads/main"
+          if [ -n "$AGENT_VERSION" ]; then
+            git push "https://gitee.com/$GITEE_REPOSITORY.git" "refs/tags/v$AGENT_VERSION:refs/tags/v$AGENT_VERSION"
+          fi
+          rm -f "$askpass"
+          remote_main="$(git ls-remote "https://gitee.com/$GITEE_REPOSITORY.git" refs/heads/main | cut -f1)"
+          test "$remote_main" = "$TARGET_COMMIT"
+      - name: 同步 Gitee Agent Release
+        if: steps.release.outputs.skip_sync != 'true' && steps.release.outputs.agent_version != ''
+        env:
+          AGENT_VERSION: ${{ steps.release.outputs.agent_version }}
+        run: >-
+          python scripts/release/sync_gitee_release.py publish
+          --version "$AGENT_VERSION"
+          --manifest "update/releases/$AGENT_VERSION.json"
+          --artifacts artifacts
+          --target-commit "$(git rev-parse refs/tags/v$AGENT_VERSION^{})"
