@@ -3,6 +3,7 @@ import type {
   ApiErrorBody,
   AssetsResponse,
   Broker,
+  LoginAccountTypeOption,
   LoginRequest,
   LoginResponse,
   PositionsResponse,
@@ -90,6 +91,10 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export function getBrokers(): Promise<Broker[]> {
   return request('/v1/trading/brokers')
+}
+
+export function getLoginAccountTypes(): Promise<LoginAccountTypeOption[]> {
+  return request('/v1/trading/login-account-types')
 }
 
 export function getAccessPoints(brokerId: string): Promise<AccessPoint[]> {

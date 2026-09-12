@@ -6,6 +6,7 @@ import {
   ApiError,
   getAccessPoints,
   getBrokers,
+  getLoginAccountTypes,
   login,
   setApiTraceListener,
 } from './api'
@@ -14,6 +15,8 @@ import type {
   AccessPoint,
   Broker,
   DecryptedResponse,
+  LoginAccountType,
+  LoginAccountTypeOption,
   LoginResponse,
   TradingAccount,
   TradingMode,
@@ -21,11 +24,14 @@ import type {
 
 const brokers = ref<Broker[]>([])
 const accessPoints = ref<AccessPoint[]>([])
+const accountTypes = ref<LoginAccountTypeOption[]>([])
 const brokerId = ref('')
 const accessPointId = ref('')
-const fundAccount = ref('')
+const accountType = ref<LoginAccountType>('fundAccount')
+const loginAccount = ref('')
 const password = ref('')
 const loginMode = ref<TradingMode>('ordinary')
+const loadingAccountTypes = ref(true)
 const loadingBrokers = ref(true)
 const loadingAccessPoints = ref(false)
 const submitting = ref(false)
@@ -42,6 +48,9 @@ const selectedBroker = computed(() => brokers.value.find((item) => item.brokerId
 const selectedAccessPoint = computed(() =>
   accessPoints.value.find((item) => item.accessPointId === accessPointId.value),
 )
+const selectedAccountType = computed(() =>
+  accountTypes.value.find((item) => item.accountType === accountType.value),
+)
 const accounts = computed<TradingAccount[]>(() => {
   if (!session.value) return []
   if (session.value.accounts?.length) return session.value.accounts
@@ -52,10 +61,24 @@ const accounts = computed<TradingAccount[]>(() => {
   }]
 })
 const canSubmit = computed(
-  () => brokerId.value && accessPointId.value && fundAccount.value.trim() && password.value && !submitting.value,
+  () => accountType.value && brokerId.value && accessPointId.value && loginAccount.value.trim()
+    && password.value && !loadingAccountTypes.value && !submitting.value,
 )
 
 onMounted(async () => {
+  try {
+    const result = await getLoginAccountTypes()
+    accountTypes.value = result
+    accountType.value = result.find((item) => item.accountType === accountType.value)?.accountType
+      ?? result.find((item) => item.isDefault)?.accountType
+      ?? result[0]?.accountType
+      ?? 'fundAccount'
+  } catch (reason) {
+    showLoginError(reason)
+  } finally {
+    loadingAccountTypes.value = false
+  }
+
   try {
     brokers.value = await getBrokers()
     brokerId.value = brokers.value.find((item) => item.brokerId === '339')?.brokerId ?? brokers.value[0]?.brokerId ?? ''
@@ -93,9 +116,10 @@ async function submitLogin() {
   try {
     const response = await login({
       tradingMode: loginMode.value,
+      accountType: accountType.value,
       brokerId: brokerId.value,
       accessPointId: accessPointId.value,
-      fundAccount: fundAccount.value.trim(),
+      fundAccount: loginAccount.value.trim(),
       password: password.value,
     })
     session.value = response
@@ -168,17 +192,31 @@ function beginDebugResize(event: PointerEvent) {
         <div>
           <p class="eyebrow">FQGate · Fast Quant Gateway</p>
           <h1>登录券商账户</h1>
-          <p class="subtitle">选择券商和交易站点，登录您的账户。</p>
+          <p class="subtitle">选择账户类别、账号类型、券商和交易站点，登录您的账户。</p>
         </div>
       </header>
 
       <form class="login-form" @submit.prevent="submitLogin">
         <label>
-          <span>登录方式</span>
+          <span>账户类别</span>
           <select v-model="loginMode" :disabled="submitting">
             <option value="ordinary">普通账户</option>
             <option value="credit">信用账户</option>
           </select>
+        </label>
+        <label>
+          <span>账号类型</span>
+          <select v-model="accountType" :disabled="loadingAccountTypes || submitting">
+            <option v-if="loadingAccountTypes" value="" disabled>正在加载账号类型…</option>
+            <option
+              v-for="option in accountTypes"
+              :key="option.accountType"
+              :value="option.accountType"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+          <small v-if="selectedAccountType">{{ selectedAccountType.description }}</small>
         </label>
         <label>
           <span>券商</span>
@@ -204,14 +242,14 @@ function beginDebugResize(event: PointerEvent) {
         </label>
 
         <label>
-          <span>资金账户</span>
+          <span>{{ selectedAccountType?.label ?? '登录账号' }}</span>
           <input
-            v-model="fundAccount"
+            v-model="loginAccount"
             name="fundAccount"
             type="text"
             autocomplete="username"
-            maxlength="15"
-            placeholder="请输入资金账户"
+            maxlength="32"
+            :placeholder="`请输入${selectedAccountType?.label ?? '登录账号'}`"
             :disabled="submitting"
           />
         </label>

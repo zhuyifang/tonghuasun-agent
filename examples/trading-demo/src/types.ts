@@ -25,6 +25,7 @@ export interface AccessPoint {
 
 export interface LoginRequest {
   tradingMode: TradingMode
+  accountType: LoginAccountType
   brokerId: string
   accessPointId: string
   fundAccount: string
@@ -32,6 +33,22 @@ export interface LoginRequest {
 }
 
 export type TradingMode = 'ordinary' | 'credit'
+
+export type LoginAccountType =
+  | 'fundAccount'
+  | 'customerNumber'
+  | 'shenzhenAccount'
+  | 'shanghaiAccount'
+  | 'fundShareAccount'
+  | 'shenzhenBShareAccount'
+  | 'shanghaiBShareAccount'
+
+export interface LoginAccountTypeOption {
+  accountType: LoginAccountType
+  label: string
+  description: string
+  isDefault: boolean
+}
 
 export interface DecryptedResponse {
   operation: string
@@ -48,6 +65,7 @@ export interface TradingAccount {
 
 export interface LoginResponse {
   tradingMode: TradingMode
+  accountType: LoginAccountType
   sessionId: string
   accountId: string
   fundAccount: string
