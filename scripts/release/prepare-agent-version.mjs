@@ -2,8 +2,9 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { compareVersions, versionParts } from "./versioning.mjs";
+
 const repositoryRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
-const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 function parseArguments(argv) {
   const result = new Map();
@@ -16,21 +17,6 @@ function parseArguments(argv) {
     result.set(name.slice(2), value);
   }
   return result;
-}
-
-function versionParts(value) {
-  const match = versionPattern.exec(value);
-  if (!match) throw new Error(`版本号必须是严格语义版本：${value}`);
-  return match.slice(1).map(Number);
-}
-
-function compareVersions(left, right) {
-  const a = versionParts(left);
-  const b = versionParts(right);
-  for (let index = 0; index < 3; index += 1) {
-    if (a[index] !== b[index]) return a[index] - b[index];
-  }
-  return 0;
 }
 
 function normalizeNotes(value) {

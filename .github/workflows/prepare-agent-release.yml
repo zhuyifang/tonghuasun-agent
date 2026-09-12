@@ -3,9 +3,19 @@ name: 准备 Agent 插件发布
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 新版本号，例如 0.3.1
+      bump:
+        description: 版本升级类型；major 也可以只是进入稳定版
         required: true
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - custom
+      custom_version:
+        description: 选择 custom 时填写严格语义版本，例如 1.0.0
+        required: false
         type: string
       release_notes:
         description: 更新说明，每行一条
@@ -43,9 +53,21 @@ jobs:
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: '3.13'
+      - name: 计算 Agent 新版本
+        id: version
+        shell: pwsh
+        env:
+          RELEASE_BUMP: ${{ inputs.bump }}
+          CUSTOM_VERSION: ${{ inputs.custom_version }}
+        run: |
+          $arguments = @("--component", "agent", "--bump", $env:RELEASE_BUMP)
+          if ($env:CUSTOM_VERSION) { $arguments += @("--custom-version", $env:CUSTOM_VERSION) }
+          $version = & node scripts/release/resolve-release-version.mjs @arguments
+          if ($LASTEXITCODE -ne 0 -or -not $version) { throw "计算 Agent 版本失败" }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
       - name: 同步全部 Agent 版本
         shell: pwsh
-        run: node scripts/release/prepare-agent-version.mjs --version "${{ inputs.version }}"
+        run: node scripts/release/prepare-agent-version.mjs --version "${{ steps.version.outputs.version }}"
       - name: 构建确定性发行包
         shell: pwsh
         run: ./scripts/Build-AgentPlugins.ps1 -Release
@@ -63,12 +85,12 @@ jobs:
       - name: 创建发布分支和 PR
         shell: pwsh
         run: |
-          $branch = "release/agent-v${{ inputs.version }}"
+          $branch = "release/agent-v${{ steps.version.outputs.version }}"
           git switch -c $branch
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add --all
-          git commit -m "准备 Agent 插件 ${{ inputs.version }} 发布"
+          git commit -m "准备 Agent 插件 ${{ steps.version.outputs.version }} 发布"
           git push --set-upstream origin $branch
-          gh pr create --base main --head $branch --title "准备 Agent 插件 ${{ inputs.version }} 发布" --body "自动同步全部插件版本、更新说明、发行清单和 SHA-256。合并后将自动构建 GitHub Draft Release，并等待正式发布批准。"
+          gh pr create --base main --head $branch --title "准备 Agent 插件 ${{ steps.version.outputs.version }} 发布" --body "自动同步全部插件版本、更新说明、发行清单和 SHA-256。合并后将自动构建 GitHub Draft Release，并等待正式发布批准。"
           gh workflow run ci.yml --ref $branch
